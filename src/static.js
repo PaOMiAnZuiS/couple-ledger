@@ -238,6 +238,19 @@ const elements = {
   budgetLeft: qs('#budgetLeft'),
   healthPill: qs('#healthPill'),
   heroTrend: qs('#heroTrend'),
+  homeTotalAssets: qs('#homeTotalAssets'),
+  homeAssetDelta: qs('#homeAssetDelta'),
+  homeNetAssets: qs('#homeNetAssets'),
+  homeLiabilities: qs('#homeLiabilities'),
+  homeCycleSurplus: qs('#homeCycleSurplus'),
+  homeCycleIncome: qs('#homeCycleIncome'),
+  homeBudgetStatus: qs('#homeBudgetStatus'),
+  homeBudget: qs('#homeBudget'),
+  homeSpent: qs('#homeSpent'),
+  homeRemaining: qs('#homeRemaining'),
+  homeBudgetProgress: qs('#homeBudgetProgress'),
+  homeAssetMix: qs('#homeAssetMix'),
+  homeAssetMixTag: qs('#homeAssetMixTag'),
   dailyInsight: qs('#dailyInsight'),
   insightCopy: qs('#insightCopy'),
   templateRow: qs('#templateRow'),
@@ -252,6 +265,10 @@ const elements = {
   lineChart: qs('#lineChart'),
   trendNote: qs('#trendNote'),
   barChart: qs('#barChart'),
+  assetScreenNet: qs('#assetScreenNet'),
+  assetScreenMeta: qs('#assetScreenMeta'),
+  assetAccountCount: qs('#assetAccountCount'),
+  assetAccountList: qs('#assetAccountList'),
   netWorth: qs('#netWorth'),
   assetSummary: qs('#assetSummary'),
   accountList: qs('#accountList'),
@@ -399,6 +416,33 @@ function currentDraftBook() {
 
 function accountsForBook(bookId = state.activeBook) {
   return accounts.filter((item) => item.scope === bookId || item.scope === 'both')
+}
+
+function assetStatsForBook(bookId = state.activeBook) {
+  const activeAccounts = accountsForBook(bookId)
+  const assets = activeAccounts.filter((item) => item.type === 'asset').reduce((sum, item) => sum + item.balance, 0)
+  const liabilities = Math.abs(activeAccounts.filter((item) => item.type === 'liability').reduce((sum, item) => sum + item.balance, 0))
+  const cash = activeAccounts
+    .filter((item) => item.type === 'asset' && !item.id.includes('fund') && item.id !== 'investment')
+    .reduce((sum, item) => sum + item.balance, 0)
+  const investment = activeAccounts
+    .filter((item) => item.id.includes('fund') || item.id === 'investment')
+    .reduce((sum, item) => sum + item.balance, 0)
+  const totalForMix = Math.max(1, assets + liabilities)
+  return {
+    accounts: activeAccounts,
+    assets,
+    liabilities,
+    net: assets - liabilities,
+    cash,
+    investment,
+    liabilityShare: liabilities,
+    mix: [
+      { id: 'cash', label: '现金', value: cash, color: '#22C55E' },
+      { id: 'investment', label: '投资', value: investment, color: '#E8C08A' },
+      { id: 'liability', label: '负债', value: liabilities, color: '#FF8A3D' },
+    ].map((item) => ({ ...item, percent: Math.round((item.value / totalForMix) * 100) })),
+  }
 }
 
 function transactionsForBook(bookId = state.activeBook) {
@@ -562,6 +606,7 @@ function renderBookSwitcher() {
 function renderDashboard() {
   const book = currentBook()
   const stats = cycleStatsForBook()
+  const assetStats = assetStatsForBook()
   const foodSpent = expenseTransactions()
     .filter((item) => item.categoryId === 'food')
     .reduce((sum, item) => sum + item.amount, 0)
@@ -572,11 +617,32 @@ function renderDashboard() {
   elements.monthIncome.textContent = `${money.format(stats.expense)} / ${money.format(stats.budget)}`
   elements.budgetLeft.textContent = `${Math.round(stats.savingRate * 100)}%`
   elements.healthPill.textContent = `距发薪 ${stats.daysRemaining} 天`
+  elements.homeTotalAssets.textContent = money.format(assetStats.assets)
+  elements.homeAssetDelta.textContent = state.activeBook === 'family' ? '今日家庭净流入 +¥0' : '今日个人净流入 +¥0'
+  elements.homeNetAssets.textContent = money.format(assetStats.net)
+  elements.homeLiabilities.textContent = `负债 ${money.format(assetStats.liabilities)}`
+  elements.homeCycleSurplus.textContent = money.format(stats.income - stats.expense)
+  elements.homeCycleIncome.textContent = `收入 ${money.format(stats.income)} · 副业 ${money.format(stats.sideIncome)}`
+  elements.homeBudgetStatus.textContent = stats.usageRate >= 100 ? '已超支' : stats.usageRate >= 90 ? '警告' : stats.usageRate >= 70 ? '提醒' : '健康'
+  elements.homeBudget.textContent = money.format(stats.budget)
+  elements.homeSpent.textContent = money.format(stats.expense)
+  elements.homeRemaining.textContent = money.format(stats.remaining)
+  elements.homeBudgetProgress.style.width = `${stats.usageRate}%`
+  elements.homeAssetMixTag.textContent = `现金 ${assetStats.mix[0].percent}% · 投资 ${assetStats.mix[1].percent}% · 负债 ${assetStats.mix[2].percent}%`
+  elements.homeAssetMix.innerHTML = assetStats.mix
+    .map((item) => `
+      <div class="asset-mix-row">
+        <span><i style="background:${item.color}"></i>${item.label}</span>
+        <div><b style="width:${Math.max(4, item.percent)}%; background:${item.color}"></b></div>
+        <strong>${money.format(item.value)}</strong>
+      </div>
+    `)
+    .join('')
 
   const todaySpent = transactionsForBook()
     .filter((item) => item.type === 'expense' && item.date === todayValue())
     .reduce((sum, item) => sum + item.amount, 0)
-  elements.dailyInsight.textContent = stats.usageRate >= 90 ? '预算接近红线' : `还能花 ${money.format(stats.remaining)}`
+  elements.dailyInsight.textContent = stats.usageRate >= 90 ? '预算接近红线' : `还能花 ${money.format(stats.remaining)} 撑 ${stats.daysRemaining} 天`
   elements.insightCopy.textContent = `下次发薪 ${formatShortDate(stats.nextPayday)}。今天已花 ${money.format(todaySpent)}，餐饮本周期 ${money.format(foodSpent)}，每日建议不超过 ${money.format(stats.dailyAllowance)}。`
 
   const activeTrend = trendValuesForBook()
@@ -757,6 +823,24 @@ function renderBills() {
 }
 
 function renderReports() {
+  const book = currentBook()
+  const assetStats = assetStatsForBook()
+  elements.assetScreenNet.textContent = money.format(assetStats.net)
+  elements.assetScreenMeta.textContent = `${book.name} · 资产 ${money.format(assetStats.assets)} · 负债 ${money.format(assetStats.liabilities)}`
+  elements.assetAccountCount.textContent = `${assetStats.accounts.length} 个账户`
+  elements.assetAccountList.innerHTML = assetStats.accounts
+    .map((item) => `
+      <div class="account-row">
+        <span class="account-icon">${iconSvg(accountIconId(item))}</span>
+        <div class="account-main">
+          <strong>${item.name}</strong>
+          <span>${item.type === 'liability' ? `负债账户 · 还款日 ${item.dueDay || '-'}` : item.id.includes('fund') || item.id === 'investment' ? '投资 / 目标资金' : '现金流账户'}</span>
+        </div>
+        <strong class="account-balance ${item.balance >= 0 ? 'positive' : ''}">${money.format(item.balance)}</strong>
+      </div>
+    `)
+    .join('')
+
   const byCategory = categories
     .filter((category) => category.type === 'expense')
     .map((category) => {

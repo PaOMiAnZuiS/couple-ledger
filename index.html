@@ -64,12 +64,63 @@
             <button type="button" data-range="year">年</button>
           </div>
 
+          <section class="cycle-cockpit" aria-label="工资周期总览">
+            <div class="cockpit-card">
+              <span>总资产</span>
+              <strong id="homeTotalAssets">¥0</strong>
+              <em id="homeAssetDelta">今日 +¥0</em>
+            </div>
+            <div class="cockpit-card">
+              <span>净资产</span>
+              <strong id="homeNetAssets">¥0</strong>
+              <em id="homeLiabilities">负债 ¥0</em>
+            </div>
+            <div class="cockpit-card">
+              <span>本周期结余</span>
+              <strong id="homeCycleSurplus">¥0</strong>
+              <em id="homeCycleIncome">收入 ¥0</em>
+            </div>
+          </section>
+
           <section class="insight-card">
             <div class="insight-icon">i</div>
             <div>
               <h3 id="dailyInsight">今日消费状态良好</h3>
               <p id="insightCopy">系统正在分析你的消费节奏。</p>
             </div>
+          </section>
+
+          <section class="panel budget-command" aria-label="预算决策">
+            <div class="section-title">
+              <div>
+                <h3>预算控制</h3>
+                <p>预算 = 收入 - 目标存款，用来判断还能花多少钱。</p>
+              </div>
+              <span class="soft-tag" id="homeBudgetStatus">健康</span>
+            </div>
+            <div class="budget-command-main">
+              <div>
+                <span>可花预算</span>
+                <strong id="homeBudget">¥0</strong>
+              </div>
+              <div>
+                <span>已花</span>
+                <strong id="homeSpent">¥0</strong>
+              </div>
+              <div>
+                <span>剩余</span>
+                <strong id="homeRemaining">¥0</strong>
+              </div>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="homeBudgetProgress" style="width:0%"></div></div>
+          </section>
+
+          <section class="panel asset-distribution" aria-label="资产分布">
+            <div class="section-title">
+              <h3>资产分布</h3>
+              <span class="soft-tag" id="homeAssetMixTag">现金 / 投资 / 负债</span>
+            </div>
+            <div class="asset-mix" id="homeAssetMix"></div>
           </section>
 
           <section class="context-panel panel" id="contextPanel" aria-label="账本空间能力"></section>
@@ -107,11 +158,26 @@
           <div class="grouped-ledger" id="groupedLedger"></div>
         </section>
 
-        <section class="screen" id="screen-reports" data-screen="reports" aria-label="统计">
+        <section class="screen" id="screen-reports" data-screen="reports" aria-label="资产">
           <div class="page-heading">
             <p class="eyebrow">Assets</p>
-            <h2>资产与趋势</h2>
+            <h2>资产</h2>
           </div>
+          <section class="asset-hero panel">
+            <div>
+              <span>净资产</span>
+              <strong id="assetScreenNet">¥0</strong>
+              <em id="assetScreenMeta">资产 ¥0 · 负债 ¥0</em>
+            </div>
+            <div class="asset-orbit" aria-hidden="true"></div>
+          </section>
+          <section class="panel">
+            <div class="section-title">
+              <h3>账户</h3>
+              <span class="soft-tag" id="assetAccountCount">0 个账户</span>
+            </div>
+            <div class="account-list" id="assetAccountList"></div>
+          </section>
           <div class="report-grid">
             <section class="panel report-panel">
               <div class="section-title">
