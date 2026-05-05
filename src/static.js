@@ -214,6 +214,10 @@ const monthlyComparePersonal = [
   { label: '5月', value: 1926 },
 ]
 
+const defaultHouseholdId = 'FAMILY-520'
+let users = loadUsers()
+let authMode = 'login'
+
 const state = {
   screen: 'home',
   range: 'month',
@@ -223,9 +227,10 @@ const state = {
   selectedCategory: 'food',
   activeBook: localStorage.getItem('hezang-active-book') || 'family',
   pendingBook: localStorage.getItem('hezang-active-book') || 'family',
-  pendingMember: '我',
+  pendingMember: currentUser()?.name || '我',
   editingId: '',
   transactions: loadTransactions(),
+  currentUserId: localStorage.getItem('hezang-session-user') || '',
 }
 
 const money = new Intl.NumberFormat('zh-CN', {
@@ -241,6 +246,9 @@ const preciseMoney = new Intl.NumberFormat('zh-CN', {
 })
 
 const elements = {
+  userMenu: qs('#userMenu'),
+  userAvatar: qs('#userAvatar'),
+  userName: qs('#userName'),
   bookSwitcher: qs('#bookSwitcher'),
   heroContext: qs('#heroContext'),
   heroBalance: qs('#heroBalance'),
@@ -295,6 +303,10 @@ const elements = {
   assetAccountList: qs('#assetAccountList'),
   netWorth: qs('#netWorth'),
   assetSummary: qs('#assetSummary'),
+  profileAvatar: qs('#profileAvatar'),
+  profileName: qs('#profileName'),
+  profileMeta: qs('#profileMeta'),
+  manageAuth: qs('#manageAuth'),
   accountList: qs('#accountList'),
   budgetList: qs('#budgetList'),
   budgetAdvice: qs('#budgetAdvice'),
@@ -323,6 +335,19 @@ const elements = {
   managerEyebrow: qs('#managerEyebrow'),
   managerTitle: qs('#managerTitle'),
   managerBody: qs('#managerBody'),
+  authPanel: qs('#authPanel'),
+  authTitle: qs('#authTitle'),
+  authCopy: qs('#authCopy'),
+  authForm: qs('#authForm'),
+  authAccount: qs('#authAccount'),
+  authPassword: qs('#authPassword'),
+  authNameField: qs('#authNameField'),
+  authDisplayName: qs('#authDisplayName'),
+  authInviteField: qs('#authInviteField'),
+  authInviteCode: qs('#authInviteCode'),
+  authError: qs('#authError'),
+  authSubmit: qs('#authSubmit'),
+  authModeToggle: qs('#authModeToggle'),
 }
 
 function tx(type, title, amount, categoryId, accountId, member, date, note, tags, bookId = 'family', beneficiary = '') {
@@ -335,6 +360,8 @@ function tx(type, title, amount, categoryId, accountId, member, date, note, tags
     categoryId,
     accountId,
     member,
+    userId: '',
+    userName: member,
     payer: member,
     owner: beneficiary || member,
     isAdvance: tags.includes('我垫付'),
@@ -350,6 +377,147 @@ function tx(type, title, amount, categoryId, accountId, member, date, note, tags
 
 function qs(selector) {
   return document.querySelector(selector)
+}
+
+function encodePassword(value) {
+  return btoa(unescape(encodeURIComponent(String(value))))
+}
+
+function normalizeAccountId(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function loadUsers() {
+  const stored = localStorage.getItem('hezang-users')
+  if (!stored) return []
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function persistUsers() {
+  localStorage.setItem('hezang-users', JSON.stringify(users))
+}
+
+function currentUser() {
+  const sessionUserId = localStorage.getItem('hezang-session-user')
+  return users.find((item) => item.id === sessionUserId) || null
+}
+
+function requireUser() {
+  const user = currentUser()
+  if (user) return user
+  openAuthPanel('register')
+  return null
+}
+
+function userInitial(name) {
+  return String(name || '我').trim().slice(0, 1).toUpperCase() || '我'
+}
+
+function syncUserIntoFamily(user) {
+  if (!user) return
+  const family = ledgerSpaces.find((item) => item.id === 'family')
+  const personal = ledgerSpaces.find((item) => item.id === 'personal')
+  if (family && user.householdId) family.members = Array.from(new Set([...(family.members || []), user.name]))
+  if (personal) personal.members = [user.name]
+  persistLedgerSpaces()
+}
+
+function renderAuthState() {
+  const user = currentUser()
+  const name = user?.name || '未登录'
+  const avatar = userInitial(user?.name || '我')
+  elements.userAvatar.textContent = avatar
+  elements.userName.textContent = name
+  elements.profileAvatar.textContent = avatar
+  elements.profileName.textContent = name
+  elements.profileMeta.textContent = user
+    ? `${user.account} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'}`
+    : '登录后可记录成员、加入家庭空间'
+}
+
+function openAuthPanel(mode = 'login') {
+  authMode = mode
+  const isRegister = authMode === 'register'
+  elements.authTitle.textContent = isRegister ? '创建一起记账号' : '登录一起记'
+  elements.authCopy.textContent = isRegister
+    ? '创建本机账号后，可以用家庭邀请码把你和老婆放进同一个家庭空间。'
+    : '登录后会恢复你的昵称、家庭空间和记账成员身份。'
+  elements.authSubmit.textContent = isRegister ? '创建账号' : '登录'
+  elements.authModeToggle.textContent = isRegister ? '已有账号？去登录' : '没有账号？创建一个'
+  elements.authNameField.hidden = !isRegister
+  elements.authInviteField.hidden = !isRegister
+  if (isRegister) {
+    elements.authInviteCode.value = new URLSearchParams(window.location.search).get('join') || elements.authInviteCode.value || defaultHouseholdId
+  }
+  elements.authError.textContent = ''
+  elements.authPanel.hidden = false
+  elements.sheetBackdrop.hidden = false
+  window.setTimeout(() => elements.authAccount.focus(), 60)
+}
+
+function closeAuthPanel() {
+  elements.authPanel.hidden = true
+  if (elements.addSheet.hidden && elements.managerPanel.hidden) elements.sheetBackdrop.hidden = true
+}
+
+function handleAuthSubmit() {
+  const account = normalizeAccountId(elements.authAccount.value)
+  const password = elements.authPassword.value
+  const passwordHash = encodePassword(password)
+  if (!account || password.length < 6) {
+    elements.authError.textContent = '账号不能为空，密码至少 6 位。'
+    return
+  }
+  if (authMode === 'register') {
+    if (users.some((item) => item.account === account)) {
+      elements.authError.textContent = '这个账号已经存在，直接登录就好。'
+      return
+    }
+    const name = elements.authDisplayName.value.trim() || '我'
+    const inviteCode = elements.authInviteCode.value.trim().toUpperCase() || defaultHouseholdId
+    const user = {
+      id: uid('user'),
+      account,
+      name,
+      passwordHash,
+      householdId: inviteCode,
+      role: users.length ? 'member' : 'admin',
+      createdAt: new Date().toISOString(),
+    }
+    users.push(user)
+    persistUsers()
+    localStorage.setItem('hezang-session-user', user.id)
+    syncUserIntoFamily(user)
+    state.currentUserId = user.id
+    state.pendingMember = user.name
+    closeAuthPanel()
+    renderApp()
+    return
+  }
+  const user = users.find((item) => item.account === account && item.passwordHash === passwordHash)
+  if (!user) {
+    elements.authError.textContent = '账号或密码不对。'
+    return
+  }
+  localStorage.setItem('hezang-session-user', user.id)
+  syncUserIntoFamily(user)
+  state.currentUserId = user.id
+  state.pendingMember = user.name
+  closeAuthPanel()
+  renderApp()
+}
+
+function logout() {
+  localStorage.removeItem('hezang-session-user')
+  state.currentUserId = ''
+  state.pendingMember = '我'
+  renderApp()
+  openAuthPanel('login')
 }
 
 function loadTransactions() {
@@ -458,6 +626,8 @@ function normalizeTransactions(items) {
     ...item,
     bookId: item.bookId || 'family',
     member: item.member || '我',
+    userId: item.userId || '',
+    userName: item.userName || item.member || '我',
     payer: item.payer || item.member || '我',
     owner: item.owner || item.beneficiary || item.member || '我',
     isAdvance: Boolean(item.isAdvance || item.tags?.includes?.('我垫付') || item.settlement === 'advance'),
@@ -841,6 +1011,7 @@ function monthlyTotals() {
 }
 
 function renderApp() {
+  renderAuthState()
   renderBookSwitcher()
   renderDashboard()
   renderBills()
@@ -1342,7 +1513,7 @@ function renderAddSheet() {
   elements.memberSelect.innerHTML = members
     .map((item) => `<option value="${item}">${item}</option>`)
     .join('')
-  if (!members.includes(state.pendingMember)) state.pendingMember = '我'
+  if (!members.includes(state.pendingMember)) state.pendingMember = currentUser()?.name || '我'
   elements.memberSelect.value = state.pendingMember
 
   if (!draftAccounts.some((item) => item.id === elements.accountSelect.value)) {
@@ -1570,7 +1741,7 @@ function openRecurringManager(recurringId = '') {
 }
 
 function openSettingPanel(setting) {
-  const payload = JSON.stringify({ transactions: state.transactions, accounts, recurringBills, incomePlans }, null, 2)
+  const payload = JSON.stringify({ users, currentUser: currentUser()?.id || '', transactions: state.transactions, accounts, recurringBills, incomePlans }, null, 2)
   const titles = {
     theme: '主题设置',
     export: '数据导入导出',
@@ -1605,7 +1776,41 @@ function openSettingPanel(setting) {
   openManager(titles[setting] || '设置', 'Settings', bodies[setting] || bodies.sync)
 }
 
+function openAuthManager() {
+  const user = currentUser()
+  if (!user) {
+    openAuthPanel('login')
+    return
+  }
+  openManager('账号与家庭', user.name, `
+    <div class="manager-copy">
+      <strong>${escapeHtml(user.name)}</strong>
+      <span>${escapeHtml(user.account)} · ${user.role === 'admin' ? '家庭管理员' : '家庭成员'}</span>
+    </div>
+    <form class="manager-form" data-profile-form>
+      <label>昵称<input name="name" value="${escapeHtml(user.name)}" required /></label>
+      <label>家庭邀请码<input name="householdId" value="${escapeHtml(user.householdId || defaultHouseholdId)}" placeholder="例如 FAMILY-520" /></label>
+      <div class="manager-actions">
+        <button type="button" class="danger-button" data-logout>退出登录</button>
+        <button type="submit" class="primary-button">保存账号</button>
+      </div>
+    </form>
+    <div class="manager-list">
+      <button class="manager-row" type="button" data-open-register>
+        <span>${iconSvg('user')}</span>
+        <div><strong>给老婆创建账号</strong><em>同一台设备可先创建成员账号；真正跨设备同步需要接 Supabase。</em></div>
+      </button>
+      <button class="manager-row" type="button" data-copy-family-link>
+        <span>${iconSvg('home')}</span>
+        <div><strong>复制家庭邀请链接</strong><em>${escapeHtml(user.householdId || defaultHouseholdId)}</em></div>
+      </button>
+    </div>
+  `)
+}
+
 function openSheet(template) {
+  const user = requireUser()
+  if (!user) return
   elements.addSheet.hidden = false
   elements.sheetBackdrop.hidden = false
   state.editingId = ''
@@ -1621,7 +1826,7 @@ function openSheet(template) {
     })
   } else {
     state.pendingBook = state.activeBook
-    state.pendingMember = '我'
+    state.pendingMember = user.name
     renderAddSheet()
     elements.accountSelect.value = localStorage.getItem(`hezang-last-account-${state.pendingBook}`) || currentBook().defaultAccountId
     elements.dateInput.value = todayValue()
@@ -1649,7 +1854,7 @@ function prefillEntry(draft) {
   state.addType = draft.type || 'expense'
   state.selectedCategory = draft.categoryId || (state.addType === 'income' ? 'salary' : state.addType === 'transfer' ? 'transfer' : 'food')
   state.pendingBook = draft.bookId || state.activeBook
-  state.pendingMember = draft.member || '我'
+  state.pendingMember = draft.member || currentUser()?.name || '我'
   syncEntryTypeButtons()
   renderAddSheet()
   elements.amountInput.value = draft.amount || ''
@@ -1664,6 +1869,8 @@ function prefillEntry(draft) {
 }
 
 function addTransactionFromSheet() {
+  const user = requireUser()
+  if (!user) return
   const amount = Number(elements.amountInput.value)
   if (!Number.isFinite(amount) || amount <= 0) return
   const category = categoryById(state.selectedCategory)
@@ -1675,14 +1882,16 @@ function addTransactionFromSheet() {
     amount,
     state.selectedCategory,
     elements.accountSelect.value,
-    state.pendingMember || '我',
+    state.pendingMember || user.name,
     elements.dateInput.value || todayValue(),
     note,
     tags.length ? tags : ['手动记账'],
   )
   nextTransaction.bookId = state.pendingBook
-  nextTransaction.payer = state.pendingMember || '我'
-  nextTransaction.owner = state.pendingBook === 'family' ? '全家' : state.pendingMember || '我'
+  nextTransaction.userId = user.id
+  nextTransaction.userName = user.name
+  nextTransaction.payer = state.pendingMember || user.name
+  nextTransaction.owner = state.pendingBook === 'family' ? '全家' : state.pendingMember || user.name
   nextTransaction.isAdvance = tags.includes('我垫付')
   localStorage.setItem(`hezang-last-account-${state.pendingBook}`, nextTransaction.accountId)
   localStorage.setItem(`hezang-last-category-${state.pendingBook}-${state.addType}`, nextTransaction.categoryId)
@@ -1704,7 +1913,7 @@ function addTransactionFromSheet() {
   state.selectedCategory = 'food'
   state.activeBook = nextTransaction.bookId
   state.pendingBook = state.activeBook
-  state.pendingMember = '我'
+  state.pendingMember = user.name
   state.editingId = ''
   localStorage.setItem('hezang-active-book', state.activeBook)
   syncEntryTypeButtons()
@@ -1799,6 +2008,7 @@ function parseLedgerText(text) {
 }
 
 function parseQuickEntry(text) {
+  const user = currentUser()
   const amount = text.match(/(\d+(?:\.\d+)?)/)?.[1] || ''
   const categoryId = inferCategory(text)
   const type = /收入|工资|副业|奖金/.test(text) ? 'income' : 'expense'
@@ -1814,7 +2024,7 @@ function parseQuickEntry(text) {
     date: todayValue(),
     note,
     tags: '快捷输入',
-    member: '我',
+    member: user?.name || '我',
   }
 }
 
@@ -1850,6 +2060,14 @@ document.querySelectorAll('[data-range]').forEach((button) => {
 
 qs('.privacy-toggle').addEventListener('click', () => {
   document.body.classList.toggle('is-private')
+})
+
+elements.userMenu.addEventListener('click', openAuthManager)
+elements.manageAuth.addEventListener('click', openAuthManager)
+elements.authModeToggle.addEventListener('click', () => openAuthPanel(authMode === 'login' ? 'register' : 'login'))
+elements.authForm.addEventListener('submit', (event) => {
+  event.preventDefault()
+  handleAuthSubmit()
 })
 
 elements.bookSwitcher.addEventListener('click', (event) => {
@@ -1994,6 +2212,7 @@ elements.closeSheet.addEventListener('click', closeSheet)
 elements.sheetBackdrop.addEventListener('click', () => {
   closeSheet()
   closeManager()
+  if (currentUser()) closeAuthPanel()
 })
 elements.saveEntry.addEventListener('click', addTransactionFromSheet)
 
@@ -2116,6 +2335,11 @@ elements.managerBody.addEventListener('click', async (event) => {
         recurringBills = parsed.recurringBills
         persistRecurringBills()
       }
+      if (Array.isArray(parsed.users)) {
+        users = parsed.users
+        persistUsers()
+        if (parsed.currentUser) localStorage.setItem('hezang-session-user', parsed.currentUser)
+      }
       if (parsed.incomePlans && typeof parsed.incomePlans === 'object') {
         Object.assign(incomePlans.personal, parsed.incomePlans.personal || {})
         Object.assign(incomePlans.family, parsed.incomePlans.family || {})
@@ -2131,6 +2355,14 @@ elements.managerBody.addEventListener('click', async (event) => {
   if (event.target.closest('[data-toggle-private]')) {
     document.body.classList.toggle('is-private')
   }
+  if (event.target.closest('[data-logout]')) {
+    closeManager()
+    logout()
+  }
+  if (event.target.closest('[data-open-register]')) {
+    closeManager()
+    openAuthPanel('register')
+  }
 })
 
 elements.managerBody.addEventListener('submit', (event) => {
@@ -2139,6 +2371,7 @@ elements.managerBody.addEventListener('submit', (event) => {
   const budgetForm = event.target.closest('[data-budget-form]')
   const ledgerForm = event.target.closest('[data-ledger-form]')
   const recurringForm = event.target.closest('[data-recurring-form]')
+  const profileForm = event.target.closest('[data-profile-form]')
   if (accountForm) {
     const form = new FormData(accountForm)
     const id = form.get('id') || uid('account')
@@ -2208,10 +2441,27 @@ elements.managerBody.addEventListener('submit', (event) => {
     closeManager()
     renderApp()
   }
+  if (profileForm) {
+    const user = currentUser()
+    if (!user) return
+    const form = new FormData(profileForm)
+    const oldName = user.name
+    user.name = String(form.get('name') || '').trim() || user.name
+    user.householdId = String(form.get('householdId') || '').trim().toUpperCase() || defaultHouseholdId
+    users = users.map((item) => (item.id === user.id ? user : item))
+    state.transactions = state.transactions.map((item) => item.member === oldName ? { ...item, member: user.name, userName: user.name } : item)
+    persistUsers()
+    persist()
+    syncUserIntoFamily(user)
+    state.pendingMember = user.name
+    closeManager()
+    renderApp()
+  }
 })
 
 qs('#copyInvite').addEventListener('click', async () => {
-  const link = `${window.location.origin}${window.location.pathname}?join=${state.activeBook}&role=partner`
+  const householdId = currentUser()?.householdId || defaultHouseholdId
+  const link = `${window.location.origin}${window.location.pathname}?join=${householdId}&role=partner`
   await navigator.clipboard?.writeText(link)
   qs('#copyInvite').textContent = '已复制'
   window.setTimeout(() => {
@@ -2222,3 +2472,4 @@ qs('#copyInvite').addEventListener('click', async () => {
 elements.dateInput.value = todayValue()
 renderApp()
 applyShortcutParams(new URLSearchParams(window.location.search))
+if (!currentUser()) openAuthPanel(users.length ? 'login' : 'register')

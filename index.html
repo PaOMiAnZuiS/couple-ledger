@@ -21,12 +21,18 @@
             <h1>一起记</h1>
           </div>
         </div>
-        <button class="icon-button privacy-toggle" type="button" aria-label="隐私模式">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6Z" />
-            <circle cx="12" cy="12" r="2.6" />
-          </svg>
-        </button>
+        <div class="header-actions">
+          <button class="user-chip" type="button" id="userMenu">
+            <span id="userAvatar">我</span>
+            <strong id="userName">未登录</strong>
+          </button>
+          <button class="icon-button privacy-toggle" type="button" aria-label="隐私模式">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6Z" />
+              <circle cx="12" cy="12" r="2.6" />
+            </svg>
+          </button>
+        </div>
       </header>
       <div class="book-switcher" id="bookSwitcher" aria-label="账本空间切换"></div>
 
@@ -257,6 +263,16 @@
             <h2>工资与我的</h2>
           </div>
 
+          <section class="panel profile-card">
+            <div class="profile-avatar" id="profileAvatar">我</div>
+            <div>
+              <p class="eyebrow">Account</p>
+              <h3 id="profileName">未登录</h3>
+              <span id="profileMeta">本机账号 · 家庭空间</span>
+            </div>
+            <button class="text-button" type="button" id="manageAuth">账号</button>
+          </section>
+
           <section class="networth-card">
             <p>总资产 / 净资产</p>
             <strong id="netWorth">¥0</strong>
@@ -406,6 +422,36 @@
           </button>
         </div>
         <div class="manager-body" id="managerBody"></div>
+      </section>
+
+      <section class="auth-panel" id="authPanel" aria-label="账号登录" aria-modal="true" hidden>
+        <div class="auth-card">
+          <img class="auth-logo" src="./public/logo.png" alt="一起记" />
+          <p class="eyebrow">Couple Ledger Account</p>
+          <h2 id="authTitle">登录一起记</h2>
+          <p id="authCopy">登录后每笔账会记录是谁记的，也可以通过家庭邀请码加入同一个家庭空间。</p>
+          <form class="auth-form" id="authForm">
+            <label>
+              手机 / 邮箱
+              <input id="authAccount" autocomplete="username" placeholder="例如：me@example.com" required />
+            </label>
+            <label>
+              密码
+              <input id="authPassword" type="password" autocomplete="current-password" placeholder="至少 6 位" required />
+            </label>
+            <label id="authNameField">
+              昵称
+              <input id="authDisplayName" placeholder="例如：我 / 老婆" />
+            </label>
+            <label id="authInviteField">
+              家庭邀请码
+              <input id="authInviteCode" placeholder="可选，例如 FAMILY-520" />
+            </label>
+            <p class="auth-error" id="authError"></p>
+            <button class="primary-button full-button" type="submit" id="authSubmit">登录</button>
+          </form>
+          <button class="text-button auth-switch" type="button" id="authModeToggle">没有账号？创建一个</button>
+        </div>
       </section>
     </div>
 
