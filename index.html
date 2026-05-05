@@ -228,7 +228,7 @@
           <section class="panel">
             <div class="section-title">
               <h3>账户资产</h3>
-              <button class="text-button" type="button">管理</button>
+              <button class="text-button" type="button" id="manageAccounts">管理</button>
             </div>
             <div class="account-list" id="accountList"></div>
           </section>
@@ -236,7 +236,7 @@
           <section class="panel">
             <div class="section-title">
               <h3>预算管理</h3>
-              <span class="soft-tag" id="budgetAdvice">建议</span>
+              <button class="soft-tag" id="budgetAdvice" type="button">建议</button>
             </div>
             <div class="budget-list" id="budgetList"></div>
           </section>
@@ -252,7 +252,7 @@
           <section class="panel">
             <div class="section-title">
               <h3>周期账单</h3>
-              <span class="soft-tag">自动生成</span>
+              <button class="soft-tag" id="manageRecurring" type="button">自动生成</button>
             </div>
             <div class="recurring-list" id="recurringList"></div>
           </section>
@@ -267,10 +267,10 @@
           </section>
 
           <section class="panel settings-panel">
-            <button type="button">深色 / 浅色模式 <span>预留</span></button>
-            <button type="button">数据导入导出 <span>CSV / Excel</span></button>
-            <button type="button">隐私锁 <span>Face ID 预留</span></button>
-            <button type="button">云同步 <span>Supabase 预留</span></button>
+            <button type="button" data-setting="theme">深色 / 浅色模式 <span>已支持偏好保存</span></button>
+            <button type="button" data-setting="export">数据导入导出 <span>CSV / JSON</span></button>
+            <button type="button" data-setting="privacy">隐私锁 <span>本机浏览器锁</span></button>
+            <button type="button" data-setting="sync">云同步 <span>Supabase 配置</span></button>
           </section>
         </section>
       </main>
@@ -355,6 +355,19 @@
           <span>点击选择小票或截图，云端 OCR 预留</span>
         </label>
         <button class="save-entry" id="saveEntry" type="button">保存账单</button>
+      </section>
+
+      <section class="manager-panel" id="managerPanel" aria-label="功能管理" aria-modal="true" hidden>
+        <div class="manager-title">
+          <div>
+            <p class="eyebrow" id="managerEyebrow">Manage</p>
+            <h2 id="managerTitle">管理</h2>
+          </div>
+          <button type="button" class="icon-button" id="closeManager" aria-label="关闭">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+        <div class="manager-body" id="managerBody"></div>
       </section>
     </div>
 

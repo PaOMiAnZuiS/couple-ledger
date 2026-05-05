@@ -13,6 +13,8 @@ const categories = [
   { id: 'transfer', name: '转账', icon: '转', color: '#8ea0a6', type: 'transfer', budget: 0 },
 ]
 
+applyStoredCategorySettings()
+
 const iconPaths = {
   home: '<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" />',
   ledger: '<path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.5-3 1.5-3-1.5L7 20V4Z" /><path d="M10 8h4M10 12h5M10 16h3" />',
@@ -68,6 +70,8 @@ const ledgerSpaces = [
   },
 ]
 
+applyStoredLedgerSpaces()
+
 const incomePlans = {
   personal: {
     payday: 10,
@@ -85,7 +89,9 @@ const incomePlans = {
   },
 }
 
-const accounts = [
+applyStoredIncomePlans()
+
+const defaultAccounts = [
   { id: 'cash', name: '个人现金', scope: 'personal', type: 'asset', icon: '现', balance: 1280, color: '#46c7a5' },
   { id: 'cmb', name: '个人银行卡', scope: 'personal', type: 'asset', icon: '卡', balance: 48620, color: '#5d7cff' },
   { id: 'wechat', name: '微信钱包', scope: 'personal', type: 'asset', icon: '微', balance: 3240, color: '#22c55e' },
@@ -102,6 +108,8 @@ const accounts = [
   { id: 'loan', name: '房贷', scope: 'family', type: 'liability', icon: '贷', balance: -880000, color: '#8972ff' },
 ]
 
+let accounts = loadAccounts()
+
 const books = [
   { id: 'personal', name: '我的个人账本', members: '仅自己可见', role: '默认账本', color: '#4967ff', template: 'personal' },
   { id: 'family', name: '家庭账本', members: '我、老婆', role: '管理员', color: '#101827' },
@@ -110,12 +118,14 @@ const books = [
   { id: 'love', name: '恋爱账本', members: '情侣模板', role: '模板', color: '#ee5f8c' },
 ]
 
-const recurringBills = [
+const defaultRecurringBills = [
   { id: 'r1', bookId: 'family', title: '房租', categoryId: 'home', amount: 5800, cycle: '每月 1 日', next: '2026-06-01' },
   { id: 'r2', bookId: 'personal', title: 'Netflix 会员', categoryId: 'digital', amount: 68, cycle: '每月 12 日', next: '2026-05-12' },
   { id: 'r3', bookId: 'personal', title: '工资', categoryId: 'salary', amount: 18500, cycle: '每月 30 日', next: '2026-05-30' },
   { id: 'r4', bookId: 'family', title: '房贷还款', categoryId: 'home', amount: 7200, cycle: '每月 20 日', next: '2026-05-20' },
 ]
+
+let recurringBills = loadRecurringBills()
 
 const templates = [
   { title: '早餐', scope: 'personal', amount: 28, categoryId: 'food', accountId: 'wechat', note: '早餐', tags: '日常' },
@@ -208,6 +218,7 @@ const state = {
   screen: 'home',
   range: 'month',
   billFilter: 'all',
+  dayFilter: '',
   addType: 'expense',
   selectedCategory: 'food',
   activeBook: localStorage.getItem('hezang-active-book') || 'family',
@@ -292,6 +303,13 @@ const elements = {
   noteInput: qs('#noteInput'),
   tagInput: qs('#tagInput'),
   saveEntry: qs('#saveEntry'),
+  manageAccounts: qs('#manageAccounts'),
+  manageRecurring: qs('#manageRecurring'),
+  managerPanel: qs('#managerPanel'),
+  closeManager: qs('#closeManager'),
+  managerEyebrow: qs('#managerEyebrow'),
+  managerTitle: qs('#managerTitle'),
+  managerBody: qs('#managerBody'),
 }
 
 function tx(type, title, amount, categoryId, accountId, member, date, note, tags, bookId = 'family', beneficiary = '') {
@@ -331,6 +349,93 @@ function loadTransactions() {
   }
 }
 
+function loadAccounts() {
+  const stored = localStorage.getItem('hezang-accounts')
+  if (!stored) return defaultAccounts.map((item) => ({ ...item }))
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) && parsed.length ? parsed : defaultAccounts.map((item) => ({ ...item }))
+  } catch {
+    return defaultAccounts.map((item) => ({ ...item }))
+  }
+}
+
+function persistAccounts() {
+  localStorage.setItem('hezang-accounts', JSON.stringify(accounts))
+}
+
+function loadRecurringBills() {
+  const stored = localStorage.getItem('hezang-recurring-bills')
+  if (!stored) return defaultRecurringBills.map((item) => ({ ...item }))
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed : defaultRecurringBills.map((item) => ({ ...item }))
+  } catch {
+    return defaultRecurringBills.map((item) => ({ ...item }))
+  }
+}
+
+function persistRecurringBills() {
+  localStorage.setItem('hezang-recurring-bills', JSON.stringify(recurringBills))
+}
+
+function applyStoredCategorySettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('hezang-category-settings') || '{}')
+    categories.forEach((item) => {
+      if (Number.isFinite(Number(stored[item.id]?.budget))) item.budget = Number(stored[item.id].budget)
+    })
+  } catch {
+    // Ignore broken local settings and keep defaults.
+  }
+}
+
+function persistCategorySettings() {
+  localStorage.setItem(
+    'hezang-category-settings',
+    JSON.stringify(Object.fromEntries(categories.map((item) => [item.id, { budget: item.budget }]))),
+  )
+}
+
+function applyStoredIncomePlans() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('hezang-income-plans') || '{}')
+    Object.entries(stored).forEach(([bookId, plan]) => {
+      if (!incomePlans[bookId]) return
+      ;['payday', 'salary', 'sideTarget', 'savingTarget'].forEach((key) => {
+        if (Number.isFinite(Number(plan[key]))) incomePlans[bookId][key] = Number(plan[key])
+      })
+      if (Array.isArray(plan.sideNames)) incomePlans[bookId].sideNames = plan.sideNames
+    })
+  } catch {
+    // Ignore broken local settings and keep defaults.
+  }
+}
+
+function persistIncomePlans() {
+  localStorage.setItem('hezang-income-plans', JSON.stringify(incomePlans))
+}
+
+function applyStoredLedgerSpaces() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('hezang-ledger-spaces') || '{}')
+    ledgerSpaces.forEach((space) => {
+      if (Array.isArray(stored[space.id]?.members) && stored[space.id].members.length) {
+        space.members = stored[space.id].members
+      }
+    })
+  } catch {
+    // Ignore broken local settings and keep defaults.
+  }
+}
+
+function persistLedgerSpaces() {
+  localStorage.setItem(
+    'hezang-ledger-spaces',
+    JSON.stringify(Object.fromEntries(ledgerSpaces.map((item) => [item.id, { members: item.members }]))),
+  )
+}
+
 function persist() {
   localStorage.setItem('hezang-pro-transactions', JSON.stringify(state.transactions))
 }
@@ -366,6 +471,16 @@ function categoryById(id) {
 
 function accountById(id) {
   return accounts.find((item) => item.id === id) || accounts[0]
+}
+
+function applyAccountDelta(item, direction = 1) {
+  const account = accounts.find((entry) => entry.id === item.accountId)
+  if (!account) return
+  if (item.type === 'income') account.balance += item.amount * direction
+  if (item.type === 'expense') {
+    account.balance += account.type === 'liability' ? -item.amount * direction : item.amount * -direction
+  }
+  persistAccounts()
 }
 
 function iconSvg(name) {
@@ -789,7 +904,11 @@ function renderBills() {
     { week: '六', day: '04' },
   ]
   elements.calendarStrip.innerHTML = days
-    .map((item) => `<button class="day-chip ${item.day === '04' ? 'is-active' : ''}" type="button">${item.week}<strong>${item.day}</strong></button>`)
+    .map((item) => {
+      const date = `2026-05-${item.day}`
+      const active = state.dayFilter ? state.dayFilter === date : item.day === '04'
+      return `<button class="day-chip ${active ? 'is-active' : ''}" type="button" data-day="${date}">${item.week}<strong>${item.day}</strong></button>`
+    })
     .join('')
 
   const query = elements.billSearch.value.trim().toLowerCase()
@@ -798,6 +917,7 @@ function renderBills() {
     const account = accountById(item.accountId)
     const haystack = `${item.title} ${category.name} ${account.name} ${item.member} ${item.note} ${item.tags.join(' ')}`.toLowerCase()
     const matchesQuery = !query || haystack.includes(query)
+    const matchesDay = !state.dayFilter || item.date === state.dayFilter
     const matchesFilter =
       state.billFilter === 'all' ||
       item.type === state.billFilter ||
@@ -805,7 +925,7 @@ function renderBills() {
       (state.billFilter === 'me' && item.member === '我') ||
       (state.billFilter === 'advance' && item.tags.includes('我垫付')) ||
       (state.billFilter === 'refund' && (item.tags.includes('报销') || item.tags.includes('退款')))
-    return matchesQuery && matchesFilter
+    return matchesQuery && matchesFilter && matchesDay
   })
 
   const groups = groupByDate(filtered)
@@ -830,14 +950,14 @@ function renderReports() {
   elements.assetAccountCount.textContent = `${assetStats.accounts.length} 个账户`
   elements.assetAccountList.innerHTML = assetStats.accounts
     .map((item) => `
-      <div class="account-row">
+      <button class="account-row account-action" type="button" data-account="${item.id}">
         <span class="account-icon">${iconSvg(accountIconId(item))}</span>
         <div class="account-main">
           <strong>${item.name}</strong>
           <span>${item.type === 'liability' ? `负债账户 · 还款日 ${item.dueDay || '-'}` : item.id.includes('fund') || item.id === 'investment' ? '投资 / 目标资金' : '现金流账户'}</span>
         </div>
         <strong class="account-balance ${item.balance >= 0 ? 'positive' : ''}">${money.format(item.balance)}</strong>
-      </div>
+      </button>
     `)
     .join('')
 
@@ -933,14 +1053,14 @@ function renderProfile() {
 
   elements.accountList.innerHTML = activeAccounts
     .map((item) => `
-      <div class="account-row">
+      <button class="account-row account-action" type="button" data-account="${item.id}">
         <span class="account-icon">${iconSvg(accountIconId(item))}</span>
         <div class="account-main">
           <strong>${item.name}</strong>
           <span>${item.type === 'liability' ? `还款日 ${item.dueDay || '-'} · 额度 ${item.limit ? money.format(item.limit) : '长期负债'}` : '可用余额'}</span>
         </div>
         <strong class="account-balance">${money.format(item.balance)}</strong>
-      </div>
+      </button>
     `)
     .join('')
 
@@ -954,10 +1074,10 @@ function renderProfile() {
       const percent = Math.min(100, Math.round((spent / category.budget) * 100))
       const color = percent > 90 ? '#ee5f8c' : category.color
       return `
-        <div class="budget-row">
+        <button class="budget-row budget-action" type="button" data-budget="${category.id}">
           <header><strong>${category.name}</strong><span>${money.format(spent)} / ${money.format(category.budget)}</span></header>
           <div class="progress-track"><div class="progress-fill" style="width:${percent}%; background:${color}"></div></div>
-        </div>
+        </button>
       `
     })
     .join('')
@@ -965,31 +1085,31 @@ function renderProfile() {
   elements.bookGrid.innerHTML = books
     .filter((item) => item.id === 'personal' || item.id === 'family')
     .map((item) => `
-      <div class="book-card ${item.id === state.activeBook ? 'is-active' : ''}">
+      <button class="book-card ${item.id === state.activeBook ? 'is-active' : ''}" type="button" data-profile-book="${item.id}">
         <span class="book-icon">${iconSvg(item.id === 'family' ? 'home' : 'user')}</span>
         <div>
           <strong>${item.name}</strong>
           <span>${item.members} · ${item.role}</span>
         </div>
-      </div>
+      </button>
     `)
     .join('')
 
   elements.bookGrid.innerHTML += `
-    <div class="book-card salary-card">
+    <button class="book-card salary-card" type="button" data-manage-budget>
       <span class="book-icon">${iconSvg('briefcase')}</span>
       <div>
         <strong>发薪日 ${stats.plan.payday} 号 · 自动入账</strong>
-        <span>工资 ${money.format(stats.plan.salary)} · 涨薪记录预留</span>
+        <span>工资 ${money.format(stats.plan.salary)} · 点击设置工资周期</span>
       </div>
-    </div>
-    <div class="book-card salary-card">
+    </button>
+    <button class="book-card salary-card" type="button" data-manage-budget>
       <span class="book-icon">${iconSvg('goal')}</span>
       <div>
         <strong>副业收入 ${money.format(stats.sideIncome)}</strong>
-        <span>${stats.plan.sideNames.join(' / ')} · 副业目标 ${money.format(stats.plan.sideTarget)}</span>
+        <span>${stats.plan.sideNames.join(' / ')} · 点击设置副业目标 ${money.format(stats.plan.sideTarget)}</span>
       </div>
-    </div>
+    </button>
   `
 
   elements.recurringList.innerHTML = recurringBills
@@ -997,11 +1117,11 @@ function renderProfile() {
     .map((item) => {
       const category = categoryById(item.categoryId)
       return `
-        <div class="recurring-row">
+        <button class="recurring-row recurring-action" type="button" data-recurring="${item.id}">
           <span class="bill-icon">${iconSvg(categoryIconId(category.id))}</span>
           <div class="recurring-main"><strong>${item.title}</strong><span>${item.cycle} · 下次 ${item.next}</span></div>
           <strong>${money.format(item.amount)}</strong>
-        </div>
+        </button>
       `
     })
     .join('') || emptyState('暂无周期账单', `${book.name} 还没有设置周期账单。`)
@@ -1133,6 +1253,200 @@ function escapeHtml(value) {
   })[char])
 }
 
+function openManager(title, eyebrow, html) {
+  elements.managerTitle.textContent = title
+  elements.managerEyebrow.textContent = eyebrow
+  elements.managerBody.innerHTML = html
+  elements.managerPanel.hidden = false
+  elements.sheetBackdrop.hidden = false
+}
+
+function closeManager() {
+  elements.managerPanel.hidden = true
+  elements.sheetBackdrop.hidden = true
+  elements.managerBody.innerHTML = ''
+}
+
+function uid(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function openAccountManager(accountId = '') {
+  const book = currentBook()
+  const account = accounts.find((item) => item.id === accountId) || {
+    id: '',
+    name: '',
+    scope: state.activeBook,
+    type: 'asset',
+    balance: 0,
+    dueDay: '',
+    limit: '',
+    color: '#E8C08A',
+  }
+  const rows = accountsForBook()
+    .map((item) => `
+      <button class="manager-row" type="button" data-edit-account="${item.id}">
+        <span>${iconSvg(accountIconId(item))}</span>
+        <div><strong>${item.name}</strong><em>${item.type === 'liability' ? '负债' : '资产'} · ${money.format(item.balance)}</em></div>
+      </button>
+    `)
+    .join('')
+  openManager('账户资产管理', book.name, `
+    <div class="manager-list">${rows}</div>
+    <form class="manager-form" data-account-form>
+      <input type="hidden" name="id" value="${escapeHtml(account.id)}" />
+      <label>账户名称<input name="name" value="${escapeHtml(account.name)}" placeholder="例如：家庭银行卡" required /></label>
+      <div class="form-grid">
+        <label>类型
+          <select name="type">
+            <option value="asset" ${account.type === 'asset' ? 'selected' : ''}>资产</option>
+            <option value="liability" ${account.type === 'liability' ? 'selected' : ''}>负债</option>
+          </select>
+        </label>
+        <label>余额<input name="balance" inputmode="decimal" value="${account.balance || 0}" /></label>
+      </div>
+      <div class="form-grid">
+        <label>还款日<input name="dueDay" inputmode="numeric" value="${account.dueDay || ''}" placeholder="信用卡可填" /></label>
+        <label>额度<input name="limit" inputmode="decimal" value="${account.limit || ''}" placeholder="可选" /></label>
+      </div>
+      <div class="manager-actions">
+        ${account.id ? '<button type="button" class="danger-button" data-delete-account>删除账户</button>' : '<span></span>'}
+        <button type="submit" class="primary-button">${account.id ? '保存账户' : '新增账户'}</button>
+      </div>
+    </form>
+  `)
+}
+
+function openBudgetManager(focusCategoryId = '') {
+  const plan = incomePlanForBook()
+  const rows = categories
+    .filter((item) => item.type === 'expense')
+    .map((item) => `
+      <label>${item.name}
+        <input name="budget-${item.id}" inputmode="decimal" value="${item.budget}" ${item.id === focusCategoryId ? 'autofocus' : ''} />
+      </label>
+    `)
+    .join('')
+  openManager('工资周期与预算', currentBook().name, `
+    <form class="manager-form" data-budget-form>
+      <div class="form-grid">
+        <label>发薪日<input name="payday" inputmode="numeric" value="${plan.payday}" /></label>
+        <label>工资收入<input name="salary" inputmode="decimal" value="${plan.salary}" /></label>
+      </div>
+      <div class="form-grid">
+        <label>副业目标<input name="sideTarget" inputmode="decimal" value="${plan.sideTarget}" /></label>
+        <label>目标存款<input name="savingTarget" inputmode="decimal" value="${plan.savingTarget}" /></label>
+      </div>
+      <label>副业来源<input name="sideNames" value="${escapeHtml(plan.sideNames.join(' / '))}" placeholder="小红书 / 接私活" /></label>
+      <div class="manager-subtitle">分类预算</div>
+      <div class="form-grid">${rows}</div>
+      <div class="manager-actions">
+        <span>预算 = 收入 - 目标存款</span>
+        <button type="submit" class="primary-button">保存预算</button>
+      </div>
+    </form>
+  `)
+}
+
+function openLedgerManager() {
+  const book = currentBook()
+  const memberRows = book.members
+    .map((member) => `
+      <button class="manager-row" type="button" data-remove-member="${escapeHtml(member)}">
+        <span>${iconSvg(member === '我' ? 'user' : 'home')}</span>
+        <div><strong>${member}</strong><em>${member === '我' ? '管理员' : '成员'} · 点击移除</em></div>
+      </button>
+    `)
+    .join('')
+  openManager('共享账本', book.name, `
+    <div class="manager-copy">
+      <strong>${book.name}</strong>
+      <span>${book.description}</span>
+    </div>
+    <div class="manager-list">${memberRows}</div>
+    <form class="manager-form" data-ledger-form>
+      <label>新增成员<input name="member" placeholder="例如：老婆 / 父母 / 室友" /></label>
+      <div class="manager-actions">
+        <button type="button" data-copy-family-link>复制邀请链接</button>
+        <button type="submit" class="primary-button">添加成员</button>
+      </div>
+    </form>
+  `)
+}
+
+function openRecurringManager(recurringId = '') {
+  const item = recurringBills.find((bill) => bill.id === recurringId) || {
+    id: '',
+    bookId: state.activeBook,
+    title: '',
+    categoryId: 'home',
+    amount: 0,
+    cycle: '每月 1 日',
+    next: todayValue(),
+  }
+  const list = recurringBills
+    .filter((bill) => bill.bookId === state.activeBook)
+    .map((bill) => `<button class="manager-row" type="button" data-edit-recurring="${bill.id}"><span>${iconSvg(categoryIconId(bill.categoryId))}</span><div><strong>${bill.title}</strong><em>${bill.cycle} · ${money.format(bill.amount)}</em></div></button>`)
+    .join('')
+  openManager('周期账单', currentBook().name, `
+    <div class="manager-list">${list || '<div class="manager-copy"><span>当前账本还没有周期账单。</span></div>'}</div>
+    <form class="manager-form" data-recurring-form>
+      <input type="hidden" name="id" value="${escapeHtml(item.id)}" />
+      <label>名称<input name="title" value="${escapeHtml(item.title)}" placeholder="例如：房租 / 工资 / 会员" required /></label>
+      <div class="form-grid">
+        <label>金额<input name="amount" inputmode="decimal" value="${item.amount || 0}" /></label>
+        <label>分类
+          <select name="categoryId">${categories.map((category) => `<option value="${category.id}" ${category.id === item.categoryId ? 'selected' : ''}>${category.name}</option>`).join('')}</select>
+        </label>
+      </div>
+      <div class="form-grid">
+        <label>周期<input name="cycle" value="${escapeHtml(item.cycle)}" /></label>
+        <label>下次日期<input name="next" type="date" value="${item.next}" /></label>
+      </div>
+      <div class="manager-actions">
+        ${item.id ? '<button type="button" class="danger-button" data-delete-recurring>删除周期账单</button>' : '<span></span>'}
+        <button type="submit" class="primary-button">${item.id ? '保存周期账单' : '新增周期账单'}</button>
+      </div>
+    </form>
+  `)
+}
+
+function openSettingPanel(setting) {
+  const payload = JSON.stringify({ transactions: state.transactions, accounts, recurringBills, incomePlans }, null, 2)
+  const titles = {
+    theme: '主题设置',
+    export: '数据导入导出',
+    privacy: '隐私锁',
+    sync: '云同步',
+  }
+  const bodies = {
+    theme: `
+      <div class="manager-copy"><strong>当前为高级深色主题</strong><span>主题偏好会保存在本机浏览器。浅色主题已作为后续产品方向保留。</span></div>
+      <button class="primary-button full-button" type="button" data-toggle-private>切换隐私模式</button>
+    `,
+    export: `
+      <div class="manager-copy"><strong>导入 / 导出数据</strong><span>可备份当前浏览器里的账单、账户、周期账单和预算配置，也可以粘贴 JSON 恢复。</span></div>
+      <textarea class="export-box">${escapeHtml(payload)}</textarea>
+      <div class="manager-actions">
+        <button type="button" data-import-export>导入文本</button>
+        <button class="primary-button" type="button" data-copy-export>复制 JSON</button>
+      </div>
+    `,
+    privacy: `
+      <div class="manager-copy"><strong>本机隐私锁</strong><span>纯前端版本无法调用 Face ID，但可以一键隐藏金额，适合公共场合查看。</span></div>
+      <button class="primary-button full-button" type="button" data-toggle-private>隐藏 / 显示金额</button>
+    `,
+    sync: `
+      <div class="manager-copy"><strong>云同步准备就绪</strong><span>当前免费版已把数据模型整理好。接 Supabase 后可实现你和老婆实时共用同一个家庭账本。</span></div>
+      <div class="manager-list">
+        <div class="manager-row"><span>${iconSvg('shield')}</span><div><strong>需要 Supabase URL</strong><em>项目地址与匿名 key</em></div></div>
+        <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>家庭空间表</strong><em>books / members / transactions / accounts</em></div></div>
+      </div>
+    `,
+  }
+  openManager(titles[setting] || '设置', 'Settings', bodies[setting] || bodies.sync)
+}
+
 function openSheet(template) {
   elements.addSheet.hidden = false
   elements.sheetBackdrop.hidden = false
@@ -1215,11 +1529,13 @@ function addTransactionFromSheet() {
   if (state.editingId) {
     nextTransaction.id = state.editingId
     const original = state.transactions.find((item) => item.id === state.editingId)
+    if (original) applyAccountDelta(original, -1)
     nextTransaction.createdAt = original?.createdAt || nextTransaction.createdAt
     state.transactions = state.transactions.map((item) => (item.id === state.editingId ? nextTransaction : item))
   } else {
     state.transactions.unshift(nextTransaction)
   }
+  applyAccountDelta(nextTransaction, 1)
   persist()
   elements.amountInput.value = ''
   elements.noteInput.value = ''
@@ -1369,6 +1685,13 @@ elements.filterStrip.addEventListener('click', (event) => {
   renderBills()
 })
 
+elements.calendarStrip.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-day]')
+  if (!button) return
+  state.dayFilter = state.dayFilter === button.dataset.day ? '' : button.dataset.day
+  renderBills()
+})
+
 elements.groupedLedger.addEventListener('click', (event) => {
   const deleteButton = event.target.closest('[data-delete]')
   const copyButton = event.target.closest('[data-copy]')
@@ -1376,6 +1699,8 @@ elements.groupedLedger.addEventListener('click', (event) => {
   const toFamilyButton = event.target.closest('[data-to-family]')
   const advanceButton = event.target.closest('[data-advance]')
   if (deleteButton) {
+    const deleted = state.transactions.find((item) => item.id === deleteButton.dataset.delete)
+    if (deleted) applyAccountDelta(deleted, -1)
     state.transactions = state.transactions.filter((item) => item.id !== deleteButton.dataset.delete)
     persist()
     renderApp()
@@ -1395,6 +1720,7 @@ elements.groupedLedger.addEventListener('click', (event) => {
       createdAt: new Date().toISOString(),
     }
     state.transactions.unshift(duplicate)
+    applyAccountDelta(duplicate, 1)
     state.activeBook = 'family'
     state.pendingBook = 'family'
     localStorage.setItem('hezang-active-book', state.activeBook)
@@ -1468,11 +1794,227 @@ elements.categoryGrid.addEventListener('click', (event) => {
 })
 
 elements.closeSheet.addEventListener('click', closeSheet)
-elements.sheetBackdrop.addEventListener('click', closeSheet)
+elements.sheetBackdrop.addEventListener('click', () => {
+  closeSheet()
+  closeManager()
+})
 elements.saveEntry.addEventListener('click', addTransactionFromSheet)
 
+elements.manageAccounts.addEventListener('click', () => openAccountManager())
+elements.manageRecurring.addEventListener('click', () => openRecurringManager())
+elements.budgetAdvice.addEventListener('click', () => openBudgetManager())
+elements.closeManager.addEventListener('click', closeManager)
+
+elements.accountList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-account]')
+  if (button) openAccountManager(button.dataset.account)
+})
+
+elements.assetAccountList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-account]')
+  if (button) openAccountManager(button.dataset.account)
+})
+
+elements.budgetList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-budget]')
+  if (button) openBudgetManager(button.dataset.budget)
+})
+
+elements.bookGrid.addEventListener('click', (event) => {
+  const bookButton = event.target.closest('[data-profile-book]')
+  if (bookButton) {
+    state.activeBook = bookButton.dataset.profileBook
+    state.pendingBook = state.activeBook
+    localStorage.setItem('hezang-active-book', state.activeBook)
+    renderApp()
+    openLedgerManager()
+    return
+  }
+  if (event.target.closest('[data-manage-budget]')) openBudgetManager()
+})
+
+elements.recurringList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-recurring]')
+  if (button) openRecurringManager(button.dataset.recurring)
+})
+
+elements.automationList.addEventListener('click', (event) => {
+  const row = event.target.closest('.automation-row')
+  if (row) openSettingPanel('sync')
+})
+
+qs('.settings-panel').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-setting]')
+  if (button) openSettingPanel(button.dataset.setting)
+})
+
+elements.managerBody.addEventListener('click', async (event) => {
+  const editAccount = event.target.closest('[data-edit-account]')
+  const deleteAccount = event.target.closest('[data-delete-account]')
+  const editRecurring = event.target.closest('[data-edit-recurring]')
+  const deleteRecurring = event.target.closest('[data-delete-recurring]')
+  const removeMember = event.target.closest('[data-remove-member]')
+  if (editAccount) {
+    openAccountManager(editAccount.dataset.editAccount)
+    return
+  }
+  if (deleteAccount) {
+    const id = elements.managerBody.querySelector('[data-account-form] [name="id"]')?.value
+    if (id) {
+      accounts = accounts.filter((item) => item.id !== id)
+      persistAccounts()
+      closeManager()
+      renderApp()
+    }
+    return
+  }
+  if (editRecurring) {
+    openRecurringManager(editRecurring.dataset.editRecurring)
+    return
+  }
+  if (deleteRecurring) {
+    const id = elements.managerBody.querySelector('[data-recurring-form] [name="id"]')?.value
+    if (id) {
+      recurringBills = recurringBills.filter((item) => item.id !== id)
+      persistRecurringBills()
+      closeManager()
+      renderApp()
+    }
+    return
+  }
+  if (removeMember) {
+    const book = currentBook()
+    const member = removeMember.dataset.removeMember
+    if (member !== '我') {
+      book.members = book.members.filter((item) => item !== member)
+      persistLedgerSpaces()
+      openLedgerManager()
+      renderApp()
+    }
+    return
+  }
+  if (event.target.closest('[data-copy-family-link]')) {
+    await navigator.clipboard?.writeText(`${window.location.origin}${window.location.pathname}?join=${state.activeBook}&role=member`)
+    event.target.closest('[data-copy-family-link]').textContent = '已复制'
+    return
+  }
+  if (event.target.closest('[data-copy-export]')) {
+    const text = elements.managerBody.querySelector('.export-box')?.value || ''
+    await navigator.clipboard?.writeText(text)
+    event.target.closest('[data-copy-export]').textContent = '已复制'
+    return
+  }
+  if (event.target.closest('[data-import-export]')) {
+    try {
+      const parsed = JSON.parse(elements.managerBody.querySelector('.export-box')?.value || '{}')
+      if (Array.isArray(parsed.transactions)) {
+        state.transactions = normalizeTransactions(parsed.transactions)
+        persist()
+      }
+      if (Array.isArray(parsed.accounts)) {
+        accounts = parsed.accounts
+        persistAccounts()
+      }
+      if (Array.isArray(parsed.recurringBills)) {
+        recurringBills = parsed.recurringBills
+        persistRecurringBills()
+      }
+      if (parsed.incomePlans && typeof parsed.incomePlans === 'object') {
+        Object.assign(incomePlans.personal, parsed.incomePlans.personal || {})
+        Object.assign(incomePlans.family, parsed.incomePlans.family || {})
+        persistIncomePlans()
+      }
+      closeManager()
+      renderApp()
+    } catch {
+      event.target.closest('[data-import-export]').textContent = '格式错误'
+    }
+    return
+  }
+  if (event.target.closest('[data-toggle-private]')) {
+    document.body.classList.toggle('is-private')
+  }
+})
+
+elements.managerBody.addEventListener('submit', (event) => {
+  event.preventDefault()
+  const accountForm = event.target.closest('[data-account-form]')
+  const budgetForm = event.target.closest('[data-budget-form]')
+  const ledgerForm = event.target.closest('[data-ledger-form]')
+  const recurringForm = event.target.closest('[data-recurring-form]')
+  if (accountForm) {
+    const form = new FormData(accountForm)
+    const id = form.get('id') || uid('account')
+    const balance = Number(form.get('balance') || 0)
+    const next = {
+      id,
+      name: String(form.get('name') || '').trim() || '未命名账户',
+      scope: state.activeBook,
+      type: form.get('type'),
+      icon: '账',
+      balance: form.get('type') === 'liability' ? -Math.abs(balance) : balance,
+      color: '#E8C08A',
+      dueDay: Number(form.get('dueDay')) || '',
+      limit: Number(form.get('limit')) || '',
+    }
+    const exists = accounts.some((item) => item.id === id)
+    accounts = exists ? accounts.map((item) => (item.id === id ? { ...item, ...next } : item)) : [...accounts, next]
+    persistAccounts()
+    closeManager()
+    renderApp()
+    return
+  }
+  if (budgetForm) {
+    const form = new FormData(budgetForm)
+    const plan = incomePlanForBook()
+    plan.payday = Math.min(28, Math.max(1, Number(form.get('payday')) || plan.payday))
+    plan.salary = Number(form.get('salary')) || 0
+    plan.sideTarget = Number(form.get('sideTarget')) || 0
+    plan.savingTarget = Number(form.get('savingTarget')) || 0
+    plan.sideNames = String(form.get('sideNames') || '').split(/[\/,，、]/).map((item) => item.trim()).filter(Boolean)
+    categories.filter((item) => item.type === 'expense').forEach((item) => {
+      item.budget = Number(form.get(`budget-${item.id}`)) || 0
+    })
+    persistIncomePlans()
+    persistCategorySettings()
+    closeManager()
+    renderApp()
+    return
+  }
+  if (ledgerForm) {
+    const member = String(new FormData(ledgerForm).get('member') || '').trim()
+    if (member) {
+      const book = currentBook()
+      book.members = Array.from(new Set([...book.members, member]))
+      persistLedgerSpaces()
+      state.pendingMember = member
+      openLedgerManager()
+      renderApp()
+    }
+    return
+  }
+  if (recurringForm) {
+    const form = new FormData(recurringForm)
+    const id = form.get('id') || uid('recurring')
+    const next = {
+      id,
+      bookId: state.activeBook,
+      title: String(form.get('title') || '').trim() || '周期账单',
+      categoryId: form.get('categoryId') || 'home',
+      amount: Number(form.get('amount')) || 0,
+      cycle: String(form.get('cycle') || '').trim() || '每月 1 日',
+      next: form.get('next') || todayValue(),
+    }
+    const exists = recurringBills.some((item) => item.id === id)
+    recurringBills = exists ? recurringBills.map((item) => (item.id === id ? next : item)) : [...recurringBills, next]
+    persistRecurringBills()
+    closeManager()
+    renderApp()
+  }
+})
+
 qs('#copyInvite').addEventListener('click', async () => {
-  const link = 'https://hezang.pages.dev/join?family=YH-FAMILY-520&role=partner'
+  const link = `${window.location.origin}${window.location.pathname}?join=${state.activeBook}&role=partner`
   await navigator.clipboard?.writeText(link)
   qs('#copyInvite').textContent = '已复制'
   window.setTimeout(() => {
