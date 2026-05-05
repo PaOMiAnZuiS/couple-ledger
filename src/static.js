@@ -262,6 +262,19 @@ const elements = {
   homeBudgetProgress: qs('#homeBudgetProgress'),
   homeAssetMix: qs('#homeAssetMix'),
   homeAssetMixTag: qs('#homeAssetMixTag'),
+  paydayForecastTag: qs('#paydayForecastTag'),
+  paydayForecastText: qs('#paydayForecastText'),
+  spendPace: qs('#spendPace'),
+  projectedBalance: qs('#projectedBalance'),
+  sideGrowthTag: qs('#sideGrowthTag'),
+  sideIncomeAmount: qs('#sideIncomeAmount'),
+  sideIncomeGrowth: qs('#sideIncomeGrowth'),
+  sideIncomeShare: qs('#sideIncomeShare'),
+  sideIncomeCoverage: qs('#sideIncomeCoverage'),
+  cycleSummaryTag: qs('#cycleSummaryTag'),
+  cycleSummaryText: qs('#cycleSummaryText'),
+  quickTextInput: qs('#quickTextInput'),
+  quickTextSave: qs('#quickTextSave'),
   dailyInsight: qs('#dailyInsight'),
   insightCopy: qs('#insightCopy'),
   templateRow: qs('#templateRow'),
@@ -619,43 +632,177 @@ function cycleItemsForBook(bookId = state.activeBook) {
   return transactionsForBook(bookId).filter((item) => item.date >= cycle.startKey && item.date <= cycle.endKey)
 }
 
+function previousSalaryCycleForBook(bookId = state.activeBook) {
+  const current = salaryCycleForBook(bookId)
+  const previousEnd = new Date(current.start)
+  previousEnd.setDate(previousEnd.getDate() - 1)
+  const previousStart = addMonths(current.start, -1)
+  const dayMs = 24 * 60 * 60 * 1000
+  const totalDays = Math.max(1, Math.round((previousEnd - previousStart) / dayMs) + 1)
+  return {
+    start: previousStart,
+    end: previousEnd,
+    startKey: dateKey(previousStart),
+    endKey: dateKey(previousEnd),
+    label: `${formatShortDate(previousStart)} - ${formatShortDate(previousEnd)}`,
+    totalDays,
+  }
+}
+
+function previousCycleItemsForBook(bookId = state.activeBook) {
+  const cycle = previousSalaryCycleForBook(bookId)
+  return transactionsForBook(bookId).filter((item) => item.date >= cycle.startKey && item.date <= cycle.endKey)
+}
+
+function isFixedExpenseBill(item) {
+  const text = `${item.title || ''} ${categoryById(item.categoryId).name} ${item.cycle || ''} ${(item.tags || []).join(' ')}`
+  return item.type !== 'income' && /房租|房贷|通勤|订阅|水电|保险|物业|还款|会员|固定/.test(text)
+}
+
+function fixedReservedForBook(bookId = state.activeBook) {
+  return recurringBills
+    .filter((item) => item.bookId === bookId && categoryById(item.categoryId).type !== 'income' && isFixedExpenseBill(item))
+    .reduce((sum, item) => sum + item.amount, 0)
+}
+
+function todayExpenseForBook(bookId = state.activeBook) {
+  return transactionsForBook(bookId)
+    .filter((item) => item.type === 'expense' && item.date === todayValue())
+    .reduce((sum, item) => sum + item.amount, 0)
+}
+
+function sideIncomeForItems(items) {
+  return items
+    .filter((item) => item.type === 'income' && (item.categoryId === 'side' || item.tags.includes('副业')))
+    .reduce((sum, item) => sum + item.amount, 0)
+}
+
+function categoryExpenseBreakdown(items) {
+  const expense = items.filter((item) => item.type === 'expense')
+  const total = expense.reduce((sum, item) => sum + item.amount, 0)
+  return categories
+    .filter((category) => category.type === 'expense')
+    .map((category) => {
+      const amount = expense.filter((item) => item.categoryId === category.id).reduce((sum, item) => sum + item.amount, 0)
+      return { ...category, amount, percent: total ? amount / total : 0 }
+    })
+    .sort((a, b) => b.amount - a.amount)
+}
+
+function consumptionInsightForBook(bookId = state.activeBook, stats = cycleStatsForBook(bookId)) {
+  const breakdown = categoryExpenseBreakdown(cycleItemsForBook(bookId))
+  const top = breakdown[0]
+  const previous = previousCycleItemsForBook(bookId)
+  const entertainmentNow = cycleItemsForBook(bookId)
+    .filter((item) => item.type === 'expense' && ['travel', 'digital'].includes(item.categoryId))
+    .reduce((sum, item) => sum + item.amount, 0)
+  const entertainmentPrev = previous
+    .filter((item) => item.type === 'expense' && ['travel', 'digital'].includes(item.categoryId))
+    .reduce((sum, item) => sum + item.amount, 0)
+  if (stats.fixedReserved > stats.income * 0.38) return '本周期固定支出偏高，已经提前预留，日常消费可以轻一点。'
+  if (top?.id === 'food' && top.percent >= 0.34) return `餐饮支出占比 ${Math.round(top.percent * 100)}%，略高，稍微收一收就很好。`
+  if (entertainmentNow - entertainmentPrev > 500) return `娱乐和数码支出比上周期增加 ${money.format(entertainmentNow - entertainmentPrev)}，可以留意一下节奏。`
+  if (stats.usageRate < 65) return '本周期消费节奏健康，按现在的速度能比较安心撑到下次发薪。'
+  return `${top?.name || '日常'}是本周期主要支出，整体还在可控范围内。`
+}
+
+function forecastForStats(stats) {
+  const pace = stats.variableExpense / Math.max(1, stats.elapsedDays)
+  const projectedVariable = pace * stats.totalDays
+  const projectedBalance = stats.realBudget - projectedVariable
+  const text = projectedBalance >= 0
+    ? `按当前节奏，到下次发薪预计剩 ${money.format(projectedBalance)}。`
+    : `按当前节奏，可能会超支 ${money.format(Math.abs(projectedBalance))}。`
+  return {
+    pace,
+    projectedBalance,
+    text: stats.usageRate < 70 && projectedBalance >= 0 ? `${text} 本周期消费节奏健康。` : text,
+    status: projectedBalance < 0 ? '有超支风险' : stats.usageRate >= 85 ? '注意节奏' : '健康',
+  }
+}
+
+function cycleSummaryCopy(stats) {
+  const saved = stats.income - stats.expense
+  const deltaSaved = saved - stats.previousSavings
+  const topCategories = categoryExpenseBreakdown(cycleItemsForBook()).slice(0, 2).map((item) => item.name).join('和') || '日常'
+  const fixedCopy = stats.fixedReserved ? `固定支出已预留 ${money.format(stats.fixedReserved)}，` : ''
+  const optimized = categoryExpenseBreakdown(cycleItemsForBook())
+    .filter((item) => ['food', 'shopping', 'digital', 'travel'].includes(item.id))
+    .reduce((sum, item) => sum + item.amount, 0)
+  return `本周期${currentBook().id === 'family' ? '你们' : '你'}共收入 ${money.format(stats.income)}，工资和副业贡献清晰，支出 ${money.format(stats.expense)}，${fixedCopy}可优化支出 ${money.format(optimized)}，目前存下 ${money.format(saved)}。${deltaSaved >= 0 ? `比上周期多存 ${money.format(deltaSaved)}` : `比上周期少存 ${money.format(Math.abs(deltaSaved))}`}。${topCategories}是主要支出来源，整体是在慢慢变好的。`
+}
+
+function suggestedDailyAllowance(stats, bookId = state.activeBook) {
+  const base = stats.basicDailyAllowance
+  const recent = trendValuesForBook(bookId).filter((value) => value > 0)
+  const recentAvg = recent.length ? recent.reduce((sum, value) => sum + value, 0) / recent.length : base
+  const today = dateAtNoon(todayValue())
+  const isWeekend = today.getDay() === 0 || today.getDay() === 6
+  const weekendFactor = isWeekend ? 1.12 : 0.9
+  const habitFactor = recentAvg > base * 1.15 ? 0.88 : recentAvg < base * 0.65 ? 1.04 : 1
+  const fixedCaution = stats.fixedReserved > stats.income * 0.35 ? 0.92 : 1
+  return Math.max(0, Math.min(stats.remaining, base * weekendFactor * habitFactor * fixedCaution))
+}
+
 function cycleStatsForBook(bookId = state.activeBook) {
   const plan = incomePlanForBook(bookId)
   const cycle = salaryCycleForBook(bookId)
   const cycleItems = cycleItemsForBook(bookId)
   const income = cycleItems.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0)
-  const sideIncome = cycleItems
-    .filter((item) => item.type === 'income' && (item.categoryId === 'side' || item.tags.includes('副业')))
-    .reduce((sum, item) => sum + item.amount, 0)
+  const sideIncome = sideIncomeForItems(cycleItems)
   const expense = cycleItems.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const fixedReserved = fixedReservedForBook(bookId)
+  const fixedActual = cycleItems.filter((item) => item.type === 'expense' && isFixedExpenseBill(item)).reduce((sum, item) => sum + item.amount, 0)
+  const variableExpense = Math.max(0, expense - fixedActual)
   const expectedIncome = plan.salary + plan.sideTarget
   const totalIncome = income || expectedIncome
-  const budget = Math.max(0, totalIncome - plan.savingTarget)
-  const remaining = Math.max(0, budget - expense)
+  const realBudget = Math.max(0, totalIncome - fixedReserved - plan.savingTarget)
+  const budget = realBudget
+  const remaining = Math.max(0, realBudget - variableExpense)
   const savingRate = totalIncome ? Math.max(0, (totalIncome - expense) / totalIncome) : 0
   const sideRate = totalIncome ? sideIncome / totalIncome : 0
-  const dailyAllowance = remaining / Math.max(1, cycle.daysRemaining || 1)
-  const usageRate = budget ? Math.min(100, Math.round((expense / budget) * 100)) : 0
+  const basicDailyAllowance = remaining / Math.max(1, cycle.daysRemaining || 1)
+  const usageRate = budget ? Math.min(100, Math.round((variableExpense / budget) * 100)) : 0
+  const previousItems = previousCycleItemsForBook(bookId)
+  const previousSideIncome = sideIncomeForItems(previousItems)
+  const previousExpense = previousItems.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const previousIncome = previousItems.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0) || totalIncome
+  const previousSavings = previousIncome - previousExpense
+  const sideGrowthRate = previousSideIncome ? (sideIncome - previousSideIncome) / previousSideIncome : sideIncome ? 1 : 0
+  const dailyAllowance = suggestedDailyAllowance({ ...cycle, income: totalIncome, fixedReserved, realBudget, remaining, variableExpense, basicDailyAllowance, usageRate }, bookId)
+  const todaySpent = todayExpenseForBook(bookId)
+  const todayRemaining = Math.max(0, dailyAllowance - todaySpent)
   return {
     ...cycle,
     plan,
     income: totalIncome,
     actualIncome: income,
     sideIncome,
+    previousSideIncome,
+    sideGrowthRate,
     expense,
+    fixedReserved,
+    fixedActual,
+    variableExpense,
+    realBudget,
     budget,
     remaining,
     savingRate,
     sideRate,
+    basicDailyAllowance,
     dailyAllowance,
+    todaySpent,
+    todayRemaining,
     usageRate,
+    previousExpense,
+    previousSavings,
   }
 }
 
-function trendValuesForBook() {
+function trendValuesForBook(bookId = state.activeBook) {
   const days = ['2026-04-28', '2026-04-29', '2026-04-30', '2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04']
   const values = days.map((date) =>
-    transactionsForBook()
+    transactionsForBook(bookId)
       .filter((item) => item.type === 'expense' && item.date === date)
       .reduce((sum, item) => sum + item.amount, 0),
   )
@@ -722,6 +869,8 @@ function renderDashboard() {
   const book = currentBook()
   const stats = cycleStatsForBook()
   const assetStats = assetStatsForBook()
+  const forecast = forecastForStats(stats)
+  const insight = consumptionInsightForBook(state.activeBook, stats)
   const foodSpent = expenseTransactions()
     .filter((item) => item.categoryId === 'food')
     .reduce((sum, item) => sum + item.amount, 0)
@@ -729,36 +878,45 @@ function renderDashboard() {
   elements.heroContext.textContent = `本周期 ${stats.label} · ${book.name}`
   elements.heroBalance.textContent = money.format(stats.remaining)
   elements.monthExpense.textContent = money.format(stats.dailyAllowance)
-  elements.monthIncome.textContent = `${money.format(stats.expense)} / ${money.format(stats.budget)}`
-  elements.budgetLeft.textContent = `${Math.round(stats.savingRate * 100)}%`
+  elements.monthIncome.textContent = money.format(stats.todaySpent)
+  elements.budgetLeft.textContent = money.format(stats.todayRemaining)
   elements.healthPill.textContent = `距发薪 ${stats.daysRemaining} 天`
-  elements.homeTotalAssets.textContent = money.format(assetStats.assets)
-  elements.homeAssetDelta.textContent = state.activeBook === 'family' ? '今日家庭净流入 +¥0' : '今日个人净流入 +¥0'
-  elements.homeNetAssets.textContent = money.format(assetStats.net)
-  elements.homeLiabilities.textContent = `负债 ${money.format(assetStats.liabilities)}`
+  elements.homeTotalAssets.textContent = money.format(stats.basicDailyAllowance)
+  elements.homeAssetDelta.textContent = `基础可花，建议值已考虑消费习惯`
+  elements.homeNetAssets.textContent = money.format(stats.fixedReserved)
+  elements.homeLiabilities.textContent = `固定实际已花 ${money.format(stats.fixedActual)}`
   elements.homeCycleSurplus.textContent = money.format(stats.income - stats.expense)
   elements.homeCycleIncome.textContent = `收入 ${money.format(stats.income)} · 副业 ${money.format(stats.sideIncome)}`
   elements.homeBudgetStatus.textContent = stats.usageRate >= 100 ? '已超支' : stats.usageRate >= 90 ? '警告' : stats.usageRate >= 70 ? '提醒' : '健康'
-  elements.homeBudget.textContent = money.format(stats.budget)
-  elements.homeSpent.textContent = money.format(stats.expense)
+  elements.homeBudget.textContent = money.format(stats.realBudget)
+  elements.homeSpent.textContent = money.format(stats.variableExpense)
   elements.homeRemaining.textContent = money.format(stats.remaining)
   elements.homeBudgetProgress.style.width = `${stats.usageRate}%`
-  elements.homeAssetMixTag.textContent = `现金 ${assetStats.mix[0].percent}% · 投资 ${assetStats.mix[1].percent}% · 负债 ${assetStats.mix[2].percent}%`
-  elements.homeAssetMix.innerHTML = assetStats.mix
+  elements.paydayForecastTag.textContent = forecast.status
+  elements.paydayForecastText.textContent = forecast.text
+  elements.spendPace.textContent = `${money.format(forecast.pace)}/天`
+  elements.projectedBalance.textContent = money.format(forecast.projectedBalance)
+  elements.sideGrowthTag.textContent = stats.sideGrowthRate >= 0 ? '在增长' : '略回落'
+  elements.sideIncomeAmount.textContent = money.format(stats.sideIncome)
+  elements.sideIncomeGrowth.textContent = `${stats.sideGrowthRate >= 0 ? '+' : ''}${Math.round(stats.sideGrowthRate * 100)}%`
+  elements.sideIncomeShare.textContent = `${Math.round(stats.sideRate * 100)}%`
+  elements.sideIncomeCoverage.textContent = `副业收入已覆盖 ${Math.round((stats.sideIncome / Math.max(1, stats.expense)) * 100)}% 的本周期生活成本。`
+  elements.homeAssetMixTag.textContent = '温和提醒'
+  elements.homeAssetMix.innerHTML = categoryExpenseBreakdown(cycleItemsForBook())
+    .slice(0, 3)
     .map((item) => `
       <div class="asset-mix-row">
-        <span><i style="background:${item.color}"></i>${item.label}</span>
-        <div><b style="width:${Math.max(4, item.percent)}%; background:${item.color}"></b></div>
-        <strong>${money.format(item.value)}</strong>
+        <span><i style="background:${item.color}"></i>${item.name}</span>
+        <div><b style="width:${Math.max(4, Math.round(item.percent * 100))}%; background:${item.color}"></b></div>
+        <strong>${money.format(item.amount)}</strong>
       </div>
     `)
     .join('')
+  elements.cycleSummaryTag.textContent = stats.progress >= 96 ? '本周期总结' : `进度 ${stats.progress}%`
+  elements.cycleSummaryText.textContent = cycleSummaryCopy(stats)
 
-  const todaySpent = transactionsForBook()
-    .filter((item) => item.type === 'expense' && item.date === todayValue())
-    .reduce((sum, item) => sum + item.amount, 0)
-  elements.dailyInsight.textContent = stats.usageRate >= 90 ? '预算接近红线' : `还能花 ${money.format(stats.remaining)} 撑 ${stats.daysRemaining} 天`
-  elements.insightCopy.textContent = `下次发薪 ${formatShortDate(stats.nextPayday)}。今天已花 ${money.format(todaySpent)}，餐饮本周期 ${money.format(foodSpent)}，每日建议不超过 ${money.format(stats.dailyAllowance)}。`
+  elements.dailyInsight.textContent = stats.todayRemaining <= 0 ? '今天建议额度已用完' : `今天还可花 ${money.format(stats.todayRemaining)}`
+  elements.insightCopy.textContent = `${forecast.text} ${insight} 今天已花 ${money.format(stats.todaySpent)}，餐饮本周期 ${money.format(foodSpent)}。`
 
   const activeTrend = trendValuesForBook()
   const maxTrend = Math.max(...activeTrend, 1)
@@ -809,14 +967,14 @@ function renderContextPanel() {
       </div>
       <div class="space-grid">
         <div class="space-tile"><span>本周期收入</span><strong>${money.format(stats.income)}</strong><em>工资 ${money.format(stats.plan.salary)} · 副业 ${money.format(stats.sideIncome)}</em></div>
-        <div class="space-tile"><span>目标存款</span><strong>${money.format(stats.plan.savingTarget)}</strong><em>预算 = 收入 - 目标存款</em></div>
+        <div class="space-tile"><span>固定支出预留</span><strong>${money.format(stats.fixedReserved)}</strong><em>真实可花 = 收入 - 固定 - 存款</em></div>
         <div class="space-tile"><span>个人净资产</span><strong>${money.format(net)}</strong><em>现金、银行卡、信用卡、花呗、投资</em></div>
         <div class="space-tile"><span>待报销 / 退款</span><strong>${money.format(reimbursement)}</strong><em>报销、退款、借入借出、分期预留</em></div>
       </div>
       <div class="cycle-progress">
         <header><span>预算进度</span><strong>${stats.usageRate}%</strong></header>
         <div class="progress-track"><div class="progress-fill" style="width:${stats.usageRate}%"></div></div>
-        <p>已花 ${money.format(stats.expense)}，剩余预算 ${money.format(stats.remaining)}，距离下次发薪还有 ${stats.daysRemaining} 天。</p>
+        <p>可变支出 ${money.format(stats.variableExpense)}，真实剩余 ${money.format(stats.remaining)}，今天建议可花 ${money.format(stats.dailyAllowance)}。</p>
       </div>
       <div class="capability-row">
         ${['工资自动入账', '副业记录', '截图 OCR', '剪贴板识别', '长按快捷入口'].map((item) => `<span>${item}</span>`).join('')}
@@ -850,14 +1008,14 @@ function renderContextPanel() {
     </div>
     <div class="space-grid">
       <div class="space-tile"><span>共同收入</span><strong>${money.format(stats.income)}</strong><em>工资 ${money.format(stats.plan.salary)} · 副业 ${money.format(stats.sideIncome)}</em></div>
-      <div class="space-tile"><span>可花预算</span><strong>${money.format(stats.budget)}</strong><em>目标存款 ${money.format(stats.plan.savingTarget)}</em></div>
+      <div class="space-tile"><span>真实可花</span><strong>${money.format(stats.realBudget)}</strong><em>固定支出 ${money.format(stats.fixedReserved)} · 目标存款 ${money.format(stats.plan.savingTarget)}</em></div>
       <div class="space-tile"><span>共同净资产</span><strong>${money.format(net)}</strong><em>家庭现金、银行卡、基金、装修、旅行账户</em></div>
       <div class="space-tile"><span>我垫付待结算</span><strong>${money.format(advance)}</strong><em>标记 is_advance 后生成内部结算</em></div>
     </div>
     <div class="cycle-progress">
       <header><span>撑到下次发薪</span><strong>${stats.daysRemaining} 天</strong></header>
       <div class="progress-track"><div class="progress-fill" style="width:${stats.usageRate}%"></div></div>
-      <p>已花 ${money.format(stats.expense)} / 预算 ${money.format(stats.budget)}，每天还可花 ${money.format(stats.dailyAllowance)}。</p>
+      <p>可变支出 ${money.format(stats.variableExpense)} / 真实可花 ${money.format(stats.realBudget)}，今天建议可花 ${money.format(stats.dailyAllowance)}。</p>
     </div>
     <div class="member-meter">
       ${members.map((item) => `
@@ -1465,7 +1623,7 @@ function openSheet(template) {
     state.pendingBook = state.activeBook
     state.pendingMember = '我'
     renderAddSheet()
-    elements.accountSelect.value = currentBook().defaultAccountId
+    elements.accountSelect.value = localStorage.getItem(`hezang-last-account-${state.pendingBook}`) || currentBook().defaultAccountId
     elements.dateInput.value = todayValue()
   }
   window.setTimeout(() => elements.amountInput.focus(), 80)
@@ -1526,6 +1684,8 @@ function addTransactionFromSheet() {
   nextTransaction.payer = state.pendingMember || '我'
   nextTransaction.owner = state.pendingBook === 'family' ? '全家' : state.pendingMember || '我'
   nextTransaction.isAdvance = tags.includes('我垫付')
+  localStorage.setItem(`hezang-last-account-${state.pendingBook}`, nextTransaction.accountId)
+  localStorage.setItem(`hezang-last-category-${state.pendingBook}-${state.addType}`, nextTransaction.categoryId)
   if (state.editingId) {
     nextTransaction.id = state.editingId
     const original = state.transactions.find((item) => item.id === state.editingId)
@@ -1550,6 +1710,18 @@ function addTransactionFromSheet() {
   syncEntryTypeButtons()
   closeSheet()
   renderApp()
+}
+
+function saveQuickTextEntry() {
+  const text = elements.quickTextInput.value.trim()
+  const draft = parseQuickEntry(text)
+  if (!draft.amount) {
+    elements.quickTextInput.focus()
+    return
+  }
+  prefillEntry(draft)
+  addTransactionFromSheet()
+  elements.quickTextInput.value = ''
 }
 
 function shortcutUrl(params) {
@@ -1626,8 +1798,28 @@ function parseLedgerText(text) {
   return { type, amount, bookId, categoryId, accountId, note, tags: text.includes('家庭') ? '家庭 Siri' : 'Siri', member }
 }
 
+function parseQuickEntry(text) {
+  const amount = text.match(/(\d+(?:\.\d+)?)/)?.[1] || ''
+  const categoryId = inferCategory(text)
+  const type = /收入|工资|副业|奖金/.test(text) ? 'income' : 'expense'
+  const bookId = state.activeBook
+  const accountId = localStorage.getItem(`hezang-last-account-${bookId}`) || currentBook().defaultAccountId
+  const note = text.replace(amount, '').replace(/元/g, '').trim() || categoryById(categoryId).name
+  return {
+    type,
+    amount,
+    bookId,
+    categoryId: type === 'income' ? (text.includes('副业') ? 'side' : 'salary') : categoryId,
+    accountId,
+    date: todayValue(),
+    note,
+    tags: '快捷输入',
+    member: '我',
+  }
+}
+
 function inferCategory(text) {
-  if (/早餐|咖啡|买菜|超市|外卖|餐|星巴克/.test(text)) return 'food'
+  if (/早餐|咖啡|买菜|超市|外卖|餐|午饭|晚饭|奶茶|星巴克/.test(text)) return 'food'
   if (/打车|地铁|通勤|公交|油费/.test(text)) return 'transport'
   if (/房租|房贷|水电|物业|居住/.test(text)) return 'home'
   if (/会员|数码|手机|电脑|耳机/.test(text)) return 'digital'
@@ -1676,6 +1868,11 @@ elements.templateRow.addEventListener('click', (event) => {
   if (!button) return
   const template = templates.find((item) => item.title === button.dataset.template)
   openSheet(template)
+})
+
+elements.quickTextSave.addEventListener('click', saveQuickTextEntry)
+elements.quickTextInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') saveQuickTextEntry()
 })
 
 elements.filterStrip.addEventListener('click', (event) => {

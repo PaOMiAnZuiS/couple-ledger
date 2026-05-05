@@ -42,15 +42,15 @@
             </div>
             <div class="hero-metrics">
               <div>
-                <span>每日可花</span>
+                <span>今天建议可花</span>
                 <strong id="monthExpense">¥0</strong>
               </div>
               <div>
-                <span>已花 / 预算</span>
+                <span>今天已花</span>
                 <strong id="monthIncome">¥0</strong>
               </div>
               <div>
-                <span>存钱率</span>
+                <span>今日剩余</span>
                 <strong id="budgetLeft">¥0</strong>
               </div>
             </div>
@@ -66,14 +66,14 @@
 
           <section class="cycle-cockpit" aria-label="工资周期总览">
             <div class="cockpit-card">
-              <span>总资产</span>
+              <span>基础可花 / 天</span>
               <strong id="homeTotalAssets">¥0</strong>
-              <em id="homeAssetDelta">今日 +¥0</em>
+              <em id="homeAssetDelta">剩余金额 ÷ 剩余天数</em>
             </div>
             <div class="cockpit-card">
-              <span>净资产</span>
+              <span>固定支出已预留</span>
               <strong id="homeNetAssets">¥0</strong>
-              <em id="homeLiabilities">负债 ¥0</em>
+              <em id="homeLiabilities">房租、通勤、订阅等</em>
             </div>
             <div class="cockpit-card">
               <span>本周期结余</span>
@@ -94,13 +94,13 @@
             <div class="section-title">
               <div>
                 <h3>预算控制</h3>
-                <p>预算 = 收入 - 目标存款，用来判断还能花多少钱。</p>
+                <p>真实可花 = 收入 - 固定支出 - 目标存款。</p>
               </div>
               <span class="soft-tag" id="homeBudgetStatus">健康</span>
             </div>
             <div class="budget-command-main">
               <div>
-                <span>可花预算</span>
+                <span>真实可花</span>
                 <strong id="homeBudget">¥0</strong>
               </div>
               <div>
@@ -115,12 +115,45 @@
             <div class="progress-track"><div class="progress-fill" id="homeBudgetProgress" style="width:0%"></div></div>
           </section>
 
-          <section class="panel asset-distribution" aria-label="资产分布">
+          <section class="panel cashflow-forecast" aria-label="发薪预测">
             <div class="section-title">
-              <h3>资产分布</h3>
-              <span class="soft-tag" id="homeAssetMixTag">现金 / 投资 / 负债</span>
+              <h3>发薪预测</h3>
+              <span class="soft-tag" id="paydayForecastTag">健康</span>
+            </div>
+            <p id="paydayForecastText">系统正在计算当前消费速度。</p>
+            <div class="forecast-grid">
+              <div><span>当前速度</span><strong id="spendPace">¥0/天</strong></div>
+              <div><span>预计到发薪</span><strong id="projectedBalance">¥0</strong></div>
+            </div>
+          </section>
+
+          <section class="panel side-hustle-panel" aria-label="副业收入成长">
+            <div class="section-title">
+              <h3>副业成长</h3>
+              <span class="soft-tag" id="sideGrowthTag">本周期</span>
+            </div>
+            <div class="side-hustle-grid">
+              <div><span>副业收入</span><strong id="sideIncomeAmount">¥0</strong></div>
+              <div><span>较上周期</span><strong id="sideIncomeGrowth">0%</strong></div>
+              <div><span>收入占比</span><strong id="sideIncomeShare">0%</strong></div>
+            </div>
+            <p id="sideIncomeCoverage">副业收入正在积累。</p>
+          </section>
+
+          <section class="panel asset-distribution" aria-label="消费结构提示">
+            <div class="section-title">
+              <h3>消费结构提示</h3>
+              <span class="soft-tag" id="homeAssetMixTag">温和提醒</span>
             </div>
             <div class="asset-mix" id="homeAssetMix"></div>
+          </section>
+
+          <section class="panel cycle-summary" aria-label="工资周期总结">
+            <div class="section-title">
+              <h3>周期总结</h3>
+              <span class="soft-tag" id="cycleSummaryTag">自动生成</span>
+            </div>
+            <p id="cycleSummaryText">这个周期正在进行中。</p>
           </section>
 
           <section class="context-panel panel" id="contextPanel" aria-label="账本空间能力"></section>
@@ -130,6 +163,11 @@
               <h3>3 秒记一笔</h3>
               <button type="button" class="text-button" data-open-add>自定义</button>
             </div>
+            <label class="quick-input">
+              <span>快捷输入</span>
+              <input id="quickTextInput" placeholder="咖啡 20 / 打车 18 / 午饭 35" />
+              <button type="button" id="quickTextSave">记一笔</button>
+            </label>
             <div class="template-row" id="templateRow"></div>
           </section>
 
