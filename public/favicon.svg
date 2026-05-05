@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="18%" r="88%">
+      <stop stop-color="#1C2633"/>
+      <stop offset="0.58" stop-color="#121A24"/>
+      <stop offset="1" stop-color="#0B1118"/>
+    </radialGradient>
+    <radialGradient id="gold" cx="50%" cy="50%" r="50%">
+      <stop stop-color="#FFE0B0"/>
+      <stop offset="0.52" stop-color="#FFB45C"/>
+      <stop offset="1" stop-color="#FF8A3D" stop-opacity="0.18"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="180" height="180" rx="42" fill="url(#bg)"/>
+  <rect x="8" y="8" width="164" height="164" rx="36" stroke="#FFE0B0" stroke-opacity="0.18"/>
+  <circle cx="73" cy="88" r="43" fill="#F7FBFA" fill-opacity="0.02" stroke="#F7FBFA" stroke-opacity="0.36" stroke-width="2"/>
+  <circle cx="107" cy="88" r="43" fill="#FFB45C" fill-opacity="0.13" stroke="#FFE0B0" stroke-opacity="0.82" stroke-width="2"/>
+  <path d="M90 55C98 68 102 79 102 90C102 101 98 112 90 125C82 112 78 101 78 90C78 79 82 68 90 55Z" fill="url(#gold)" filter="url(#glow)"/>
+  <path d="M90 68C95 76 97 83 97 90C97 97 95 104 90 112C85 104 83 97 83 90C83 83 85 76 90 68Z" fill="#F7FBFA" fill-opacity="0.92"/>
+  <path d="M90 43V137" stroke="#FFE0B0" stroke-opacity="0.42" stroke-width="1"/>
+  <path d="M52 139H128" stroke="#FFB45C" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round"/>
+</svg>

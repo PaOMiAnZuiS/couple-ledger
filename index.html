@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#061116" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="一起记" />
+    <title>一起记 · Couple Ledger</title>
+    <link rel="icon" type="image/png" href="/public/logo.png" />
+    <link rel="apple-touch-icon" href="/public/logo.png" />
+    <link rel="stylesheet" href="/src/static.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <img class="orb-logo" src="/public/logo.png" alt="一起记" />
+          <div>
+            <p class="eyebrow">Couple Ledger</p>
+            <h1>一起记</h1>
+          </div>
+        </div>
+        <button class="icon-button privacy-toggle" type="button" aria-label="隐私模式">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6Z" />
+            <circle cx="12" cy="12" r="2.6" />
+          </svg>
+        </button>
+      </header>
+      <div class="book-switcher" id="bookSwitcher" aria-label="账本空间切换"></div>
+
+      <main class="screen-stack">
+        <section class="screen is-active" id="screen-home" data-screen="home" aria-label="首页">
+          <div class="hero-card">
+            <div class="hero-top">
+              <div>
+                <p id="heroContext">2026 年 5 月 · 家庭账本</p>
+                <h2 id="heroBalance">¥0</h2>
+              </div>
+              <span class="health-pill" id="healthPill">距发薪 0 天</span>
+            </div>
+            <div class="hero-metrics">
+              <div>
+                <span>每日可花</span>
+                <strong id="monthExpense">¥0</strong>
+              </div>
+              <div>
+                <span>已花 / 预算</span>
+                <strong id="monthIncome">¥0</strong>
+              </div>
+              <div>
+                <span>存钱率</span>
+                <strong id="budgetLeft">¥0</strong>
+              </div>
+            </div>
+            <div class="mini-trend" id="heroTrend" aria-label="消费趋势"></div>
+          </div>
+
+          <div class="range-control" aria-label="时间视角">
+            <button class="is-active" type="button" data-range="day">日</button>
+            <button type="button" data-range="week">周</button>
+            <button type="button" data-range="month">月</button>
+            <button type="button" data-range="year">年</button>
+          </div>
+
+          <section class="insight-card">
+            <div class="insight-icon">i</div>
+            <div>
+              <h3 id="dailyInsight">今日消费状态良好</h3>
+              <p id="insightCopy">系统正在分析你的消费节奏。</p>
+            </div>
+          </section>
+
+          <section class="context-panel panel" id="contextPanel" aria-label="账本空间能力"></section>
+
+          <section class="quick-templates">
+            <div class="section-title">
+              <h3>3 秒记一笔</h3>
+              <button type="button" class="text-button" data-open-add>自定义</button>
+            </div>
+            <div class="template-row" id="templateRow"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h3>最近账单</h3>
+              <button type="button" class="text-button" data-switch-screen="bills">查看全部</button>
+            </div>
+            <div class="compact-list" id="recentList"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="screen-bills" data-screen="bills" aria-label="账单">
+          <div class="page-heading">
+            <p class="eyebrow">Ledger</p>
+            <h2>账单</h2>
+          </div>
+          <div class="search-card">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" />
+            </svg>
+            <input id="billSearch" placeholder="搜索分类、备注、成员、标签" />
+          </div>
+          <div class="filter-strip" id="filterStrip"></div>
+          <div class="calendar-strip" id="calendarStrip"></div>
+          <div class="grouped-ledger" id="groupedLedger"></div>
+        </section>
+
+        <section class="screen" id="screen-reports" data-screen="reports" aria-label="统计">
+          <div class="page-heading">
+            <p class="eyebrow">Assets</p>
+            <h2>资产与趋势</h2>
+          </div>
+          <div class="report-grid">
+            <section class="panel report-panel">
+              <div class="section-title">
+                <h3>支出结构</h3>
+                <span class="soft-tag">工资周期</span>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut-chart" id="donutChart"></div>
+                <div class="donut-center">
+                  <span>Top</span>
+                  <strong id="topCategory">餐饮</strong>
+                </div>
+              </div>
+              <div class="rank-list" id="categoryRank"></div>
+            </section>
+
+            <section class="panel report-panel">
+              <div class="section-title">
+                <h3>周期趋势</h3>
+                <span class="soft-tag">近 7 天</span>
+              </div>
+              <svg class="line-chart" id="lineChart" viewBox="0 0 340 150" role="img" aria-label="消费趋势折线图"></svg>
+              <p class="chart-note" id="trendNote">本周消费节奏稳定。</p>
+            </section>
+
+            <section class="panel report-panel">
+              <div class="section-title">
+                <h3>月度支出</h3>
+                <span class="soft-tag">同比 / 环比</span>
+              </div>
+              <div class="bar-chart" id="barChart"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-profile" data-screen="profile" aria-label="我的">
+          <div class="page-heading">
+            <p class="eyebrow">Salary & Settings</p>
+            <h2>工资与我的</h2>
+          </div>
+
+          <section class="networth-card">
+            <p>总资产 / 净资产</p>
+            <strong id="netWorth">¥0</strong>
+            <span id="assetSummary">资产 ¥0 · 负债 ¥0</span>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h3>账户资产</h3>
+              <button class="text-button" type="button">管理</button>
+            </div>
+            <div class="account-list" id="accountList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h3>预算管理</h3>
+              <span class="soft-tag" id="budgetAdvice">建议</span>
+            </div>
+            <div class="budget-list" id="budgetList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h3>共享账本</h3>
+              <button class="text-button" type="button" id="copyInvite">邀请</button>
+            </div>
+            <div class="book-grid" id="bookGrid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h3>周期账单</h3>
+              <span class="soft-tag">自动生成</span>
+            </div>
+            <div class="recurring-list" id="recurringList"></div>
+          </section>
+
+          <section class="panel automation-panel">
+            <div class="section-title">
+              <h3>快捷指令与自动化</h3>
+              <span class="soft-tag">iOS 核心能力</span>
+            </div>
+            <div class="shortcut-grid" id="shortcutGrid"></div>
+            <div class="automation-list" id="automationList"></div>
+          </section>
+
+          <section class="panel settings-panel">
+            <button type="button">深色 / 浅色模式 <span>预留</span></button>
+            <button type="button">数据导入导出 <span>CSV / Excel</span></button>
+            <button type="button">隐私锁 <span>Face ID 预留</span></button>
+            <button type="button">云同步 <span>Supabase 预留</span></button>
+          </section>
+        </section>
+      </main>
+
+      <nav class="tab-bar" aria-label="主导航">
+        <button type="button" class="is-active" data-tab="home">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" /></svg>
+          首页
+        </button>
+        <button type="button" data-tab="bills">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.6-3 1.6-3-1.6L7 20V4Z" /></svg>
+          账单
+        </button>
+        <button type="button" class="add-tab" data-open-add aria-label="记账">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+        <button type="button" data-tab="reports">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7" /></svg>
+          资产
+        </button>
+        <button type="button" data-tab="profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 9a7 7 0 0 0-14 0" /></svg>
+          我的
+        </button>
+      </nav>
+
+      <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+      <section class="add-sheet" id="addSheet" aria-label="快速记账" aria-modal="true" hidden>
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">
+          <div>
+            <p class="eyebrow">Quick Entry</p>
+            <h2>记一笔</h2>
+          </div>
+          <button type="button" class="icon-button" id="closeSheet" aria-label="关闭">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+
+        <div class="entry-type" id="entryType">
+          <button type="button" class="is-active" data-type="expense">支出</button>
+          <button type="button" data-type="income">收入</button>
+          <button type="button" data-type="transfer">转账</button>
+        </div>
+
+        <label class="amount-field">
+          <span>金额</span>
+          <input id="amountInput" inputmode="decimal" placeholder="0.00" />
+        </label>
+
+        <div class="category-grid" id="categoryGrid"></div>
+
+        <div class="entry-grid">
+          <label>
+            账本
+            <select id="bookSelect"></select>
+          </label>
+          <label>
+            成员
+            <select id="memberSelect"></select>
+          </label>
+          <label>
+            账户
+            <select id="accountSelect"></select>
+          </label>
+          <label>
+            时间
+            <input id="dateInput" type="date" />
+          </label>
+        </div>
+        <label>
+          备注
+          <input id="noteInput" placeholder="例如：和老婆吃晚餐" />
+        </label>
+        <label>
+          标签
+          <input id="tagInput" placeholder="家庭、约会、通勤" />
+        </label>
+        <label class="receipt-field">
+          图片凭证
+          <input id="receiptInput" type="file" accept="image/*" />
+          <span>点击选择小票或截图，云端 OCR 预留</span>
+        </label>
+        <button class="save-entry" id="saveEntry" type="button">保存账单</button>
+      </section>
+    </div>
+
+    <script type="module" src="/src/static.js"></script>
+  </body>
+</html>

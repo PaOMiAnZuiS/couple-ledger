@@ -1,0 +1,9 @@
+{
+  "name": "new-project-2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 4173"
+  }
+}
