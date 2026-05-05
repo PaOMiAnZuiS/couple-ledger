@@ -348,6 +348,8 @@ const elements = {
   authError: qs('#authError'),
   authSubmit: qs('#authSubmit'),
   authModeToggle: qs('#authModeToggle'),
+  appleLoginButton: qs('#appleLoginButton'),
+  appleConfigButton: qs('#appleConfigButton'),
 }
 
 function tx(type, title, amount, categoryId, accountId, member, date, note, tags, bookId = 'family', beneficiary = '') {
@@ -402,6 +404,33 @@ function persistUsers() {
   localStorage.setItem('hezang-users', JSON.stringify(users))
 }
 
+function loadAppleConfig() {
+  const stored = localStorage.getItem('hezang-apple-config')
+  if (!stored) return null
+  try {
+    const parsed = JSON.parse(stored)
+    return parsed?.clientId && parsed?.redirectURI ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function persistAppleConfig(config) {
+  localStorage.setItem('hezang-apple-config', JSON.stringify(config))
+}
+
+function decodeJwtPayload(token) {
+  const [, payload] = String(token || '').split('.')
+  if (!payload) return {}
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+    return JSON.parse(decodeURIComponent(escape(atob(padded))))
+  } catch {
+    return {}
+  }
+}
+
 function currentUser() {
   const sessionUserId = localStorage.getItem('hezang-session-user')
   return users.find((item) => item.id === sessionUserId) || null
@@ -427,26 +456,108 @@ function syncUserIntoFamily(user) {
   persistLedgerSpaces()
 }
 
+function loginWithAppleProfile(profile) {
+  const provider = profile.provider || 'apple'
+  const stableId = String(profile.sub || profile.email || profile.account || '').trim()
+  if (!stableId) {
+    elements.authError.textContent = 'Apple 登录没有返回可识别的用户 ID，请检查配置。'
+    return
+  }
+  const account = provider === 'apple' ? `apple:${stableId}` : `apple-dev:${stableId}`
+  let user = users.find((item) => item.appleSub === stableId || item.account === account)
+  if (!user) {
+    user = {
+      id: uid('user'),
+      account,
+      name: profile.name || 'Apple 用户',
+      passwordHash: '',
+      householdId: defaultHouseholdId,
+      role: users.length ? 'member' : 'admin',
+      provider,
+      appleSub: stableId,
+      email: profile.email || '',
+      createdAt: new Date().toISOString(),
+    }
+    users.push(user)
+  } else {
+    user.provider = user.provider || provider
+    user.appleSub = user.appleSub || stableId
+    user.email = user.email || profile.email || ''
+    if (profile.name && user.name === 'Apple 用户') user.name = profile.name
+    users = users.map((item) => (item.id === user.id ? user : item))
+  }
+  persistUsers()
+  localStorage.setItem('hezang-session-user', user.id)
+  syncUserIntoFamily(user)
+  state.currentUserId = user.id
+  state.pendingMember = user.name
+  closeManager()
+  closeAuthPanel()
+  renderApp()
+}
+
+async function signInWithApple() {
+  elements.authError.textContent = ''
+  const config = loadAppleConfig()
+  if (!config) {
+    openAppleConfigManager()
+    return
+  }
+  if (!window.AppleID?.auth) {
+    elements.authError.textContent = 'Apple 登录脚本还没加载完成，稍等几秒再试。'
+    return
+  }
+  try {
+    const nonce = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
+    window.AppleID.auth.init({
+      clientId: config.clientId,
+      scope: 'name email',
+      redirectURI: config.redirectURI,
+      state: nonce,
+      nonce,
+      usePopup: true,
+    })
+    const response = await window.AppleID.auth.signIn()
+    const payload = decodeJwtPayload(response?.authorization?.id_token)
+    const fullName = response?.user?.name
+      ? [response.user.name.firstName, response.user.name.lastName].filter(Boolean).join('')
+      : ''
+    loginWithAppleProfile({
+      provider: 'apple',
+      sub: payload.sub,
+      email: payload.email,
+      name: fullName || payload.email?.split('@')[0] || 'Apple 用户',
+    })
+  } catch (error) {
+    elements.authError.textContent = error?.error || error?.message || 'Apple 登录已取消或配置未通过。'
+  }
+}
+
 function renderAuthState() {
   const user = currentUser()
   const name = user?.name || '未登录'
   const avatar = userInitial(user?.name || '我')
+  const accountLabel = user?.provider === 'apple'
+    ? 'Apple 登录'
+    : user?.provider === 'apple-dev'
+      ? '本机 Apple 体验账号'
+      : user?.account
   elements.userAvatar.textContent = avatar
   elements.userName.textContent = name
   elements.profileAvatar.textContent = avatar
   elements.profileName.textContent = name
   elements.profileMeta.textContent = user
-    ? `${user.account} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'}`
+    ? `${accountLabel} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'}`
     : '登录后可记录成员、加入家庭空间'
 }
 
 function openAuthPanel(mode = 'login') {
   authMode = mode
   const isRegister = authMode === 'register'
-  elements.authTitle.textContent = isRegister ? '创建一起记账号' : '登录一起记'
+  elements.authTitle.textContent = isRegister ? '创建本机账号' : '登录一起记'
   elements.authCopy.textContent = isRegister
-    ? '创建本机账号后，可以用家庭邀请码把你和老婆放进同一个家庭空间。'
-    : '登录后会恢复你的昵称、家庭空间和记账成员身份。'
+    ? '推荐优先使用 Apple 登录；本机账号适合暂时在当前设备体验家庭空间。'
+    : '推荐使用 Apple 登录。登录后每笔账会记录是谁记的，也能加入同一个家庭空间。'
   elements.authSubmit.textContent = isRegister ? '创建账号' : '登录'
   elements.authModeToggle.textContent = isRegister ? '已有账号？去登录' : '没有账号？创建一个'
   elements.authNameField.hidden = !isRegister
@@ -1782,10 +1893,15 @@ function openAuthManager() {
     openAuthPanel('login')
     return
   }
+  const providerLabel = user.provider === 'apple'
+    ? 'Apple 登录'
+    : user.provider === 'apple-dev'
+      ? '本机 Apple 体验账号'
+      : '本机账号'
   openManager('账号与家庭', user.name, `
     <div class="manager-copy">
       <strong>${escapeHtml(user.name)}</strong>
-      <span>${escapeHtml(user.account)} · ${user.role === 'admin' ? '家庭管理员' : '家庭成员'}</span>
+      <span>${escapeHtml(providerLabel)} · ${user.role === 'admin' ? '家庭管理员' : '家庭成员'}</span>
     </div>
     <form class="manager-form" data-profile-form>
       <label>昵称<input name="name" value="${escapeHtml(user.name)}" required /></label>
@@ -1804,6 +1920,40 @@ function openAuthManager() {
         <span>${iconSvg('home')}</span>
         <div><strong>复制家庭邀请链接</strong><em>${escapeHtml(user.householdId || defaultHouseholdId)}</em></div>
       </button>
+      <button class="manager-row" type="button" data-open-apple-config>
+        <span></span>
+        <div><strong>Apple 登录配置</strong><em>配置 Services ID 和回调地址，正式接入 Sign in with Apple。</em></div>
+      </button>
+    </div>
+  `)
+}
+
+function openAppleConfigManager() {
+  if (!elements.authPanel.hidden) closeAuthPanel()
+  const config = loadAppleConfig() || {}
+  const suggestedRedirect = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '/')
+  openManager('Apple 登录', 'Sign in with Apple', `
+    <div class="manager-copy">
+      <strong>正式上线需要 Apple Developer 配置</strong>
+      <span>Web 端需要 Services ID 作为 clientId，并把当前站点地址加入 Return URL。生产环境还要在后端校验 Apple 返回的 token / code。</span>
+    </div>
+    <form class="manager-form" data-apple-config-form>
+      <label>Services ID / Client ID<input name="clientId" value="${escapeHtml(config.clientId || '')}" placeholder="例如 com.yourname.coupleledger.web" /></label>
+      <label>Return URL<input name="redirectURI" value="${escapeHtml(config.redirectURI || suggestedRedirect)}" placeholder="${escapeHtml(suggestedRedirect)}" /></label>
+      <div class="manager-actions">
+        <button type="button" data-dev-apple-login>本机 Apple 登录体验</button>
+        <button type="submit" class="primary-button">保存配置</button>
+      </div>
+    </form>
+    <div class="manager-list">
+      <div class="manager-row">
+        <span>${iconSvg('shield')}</span>
+        <div><strong>生产安全边界</strong><em>当前静态版只负责唤起 Apple 登录；多人同步和 token 验证建议接 Supabase Edge Function 或你的后端。</em></div>
+      </div>
+      <div class="manager-row">
+        <span>${iconSvg('home')}</span>
+        <div><strong>家庭账本身份</strong><em>Apple 登录后仍会绑定家庭邀请码，每笔账会保留成员与 userId。</em></div>
+      </div>
     </div>
   `)
 }
@@ -2064,6 +2214,8 @@ qs('.privacy-toggle').addEventListener('click', () => {
 
 elements.userMenu.addEventListener('click', openAuthManager)
 elements.manageAuth.addEventListener('click', openAuthManager)
+elements.appleLoginButton.addEventListener('click', signInWithApple)
+elements.appleConfigButton.addEventListener('click', openAppleConfigManager)
 elements.authModeToggle.addEventListener('click', () => openAuthPanel(authMode === 'login' ? 'register' : 'login'))
 elements.authForm.addEventListener('submit', (event) => {
   event.preventDefault()
@@ -2363,6 +2515,19 @@ elements.managerBody.addEventListener('click', async (event) => {
     closeManager()
     openAuthPanel('register')
   }
+  if (event.target.closest('[data-open-apple-config]')) {
+    openAppleConfigManager()
+  }
+  if (event.target.closest('[data-dev-apple-login]')) {
+    const deviceId = localStorage.getItem('hezang-device-apple-id') || uid('apple-device')
+    localStorage.setItem('hezang-device-apple-id', deviceId)
+    loginWithAppleProfile({
+      provider: 'apple-dev',
+      sub: deviceId,
+      email: 'local-apple@example.dev',
+      name: currentUser()?.name || 'Apple 用户',
+    })
+  }
 })
 
 elements.managerBody.addEventListener('submit', (event) => {
@@ -2372,6 +2537,22 @@ elements.managerBody.addEventListener('submit', (event) => {
   const ledgerForm = event.target.closest('[data-ledger-form]')
   const recurringForm = event.target.closest('[data-recurring-form]')
   const profileForm = event.target.closest('[data-profile-form]')
+  const appleConfigForm = event.target.closest('[data-apple-config-form]')
+  if (appleConfigForm) {
+    const form = new FormData(appleConfigForm)
+    const clientId = String(form.get('clientId') || '').trim()
+    const redirectURI = String(form.get('redirectURI') || '').trim()
+    if (!clientId || !redirectURI) {
+      const button = appleConfigForm.querySelector('.primary-button')
+      if (button) button.textContent = '请补全'
+      return
+    }
+    persistAppleConfig({ clientId, redirectURI })
+    const button = appleConfigForm.querySelector('.primary-button')
+    if (button) button.textContent = '已保存'
+    window.setTimeout(closeManager, 500)
+    return
+  }
   if (accountForm) {
     const form = new FormData(accountForm)
     const id = form.get('id') || uid('account')

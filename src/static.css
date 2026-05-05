@@ -1998,6 +1998,40 @@ body::before {
   gap: 10px;
 }
 
+.apple-login-button {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--radius-16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(226, 231, 238, 0.9)),
+    #fff;
+  color: #05070a;
+  font-weight: 900;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.apple-login-button span {
+  font-size: 24px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.apple-login-button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.auth-config-button {
+  justify-self: center;
+  color: rgba(232, 192, 138, 0.9);
+  font-size: 12px;
+}
+
 .auth-form label {
   display: grid;
   gap: 7px;

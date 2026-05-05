@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" href="./public/logo.png" />
     <link rel="apple-touch-icon" href="./public/logo.png" />
     <link rel="stylesheet" href="./src/static.css" />
+    <script defer src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/zh_CN/appleid.auth.js"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -430,6 +431,11 @@
           <p class="eyebrow">Couple Ledger Account</p>
           <h2 id="authTitle">登录一起记</h2>
           <p id="authCopy">登录后每笔账会记录是谁记的，也可以通过家庭邀请码加入同一个家庭空间。</p>
+          <button class="apple-login-button" type="button" id="appleLoginButton">
+            <span></span>
+            使用 Apple 登录
+          </button>
+          <button class="text-button auth-config-button" type="button" id="appleConfigButton">配置 Apple 登录参数</button>
           <form class="auth-form" id="authForm">
             <label>
               手机 / 邮箱
@@ -450,7 +456,7 @@
             <p class="auth-error" id="authError"></p>
             <button class="primary-button full-button" type="submit" id="authSubmit">登录</button>
           </form>
-          <button class="text-button auth-switch" type="button" id="authModeToggle">没有账号？创建一个</button>
+          <button class="text-button auth-switch" type="button" id="authModeToggle">本机账号登录 / 注册</button>
         </div>
       </section>
     </div>
