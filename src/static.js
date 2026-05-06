@@ -1201,6 +1201,7 @@ function monthlyTotals() {
 }
 
 function renderApp() {
+  syncScreenChrome()
   renderAuthState()
   renderBookSwitcher()
   renderDashboard()
@@ -2138,8 +2139,15 @@ function closeSheet() {
   elements.sheetBackdrop.hidden = true
 }
 
+function syncScreenChrome() {
+  document.body.dataset.screen = state.screen
+  const floatingEntry = qs('.floating-entry')
+  if (floatingEntry) floatingEntry.hidden = state.screen === 'profile'
+}
+
 function switchScreen(screen) {
   state.screen = screen
+  syncScreenChrome()
   document.querySelectorAll('.screen').forEach((item) => item.classList.toggle('is-active', item.dataset.screen === screen))
   document.querySelectorAll('.tab-bar [data-tab]').forEach((item) => item.classList.toggle('is-active', item.dataset.tab === screen))
   window.scrollTo({ top: 0, behavior: 'smooth' })
