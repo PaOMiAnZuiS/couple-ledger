@@ -526,6 +526,35 @@ function loginWithAppleProfile(profile) {
   renderApp()
 }
 
+function loginWithMockAccount() {
+  const mockId = 'mock-couple-ledger-user'
+  let user = users.find((item) => item.id === mockId || item.account === 'mock:体验账号')
+  if (!user) {
+    user = {
+      id: mockId,
+      account: 'mock:体验账号',
+      name: '我',
+      passwordHash: '',
+      householdId: defaultHouseholdId,
+      role: 'admin',
+      provider: 'mock',
+      createdAt: new Date().toISOString(),
+    }
+    users.push(user)
+  } else {
+    user = { ...user, name: user.name || '我', householdId: user.householdId || defaultHouseholdId, provider: 'mock' }
+    users = users.map((item) => (item.id === user.id ? user : item))
+  }
+  persistUsers()
+  localStorage.setItem('hezang-session-user', user.id)
+  syncUserIntoFamily(user)
+  state.currentUserId = user.id
+  state.pendingMember = user.name
+  closeManager()
+  closeAuthPanel()
+  renderApp()
+}
+
 async function signInWithApple() {
   elements.authError.textContent = ''
   const config = loadAppleConfig()
@@ -575,7 +604,9 @@ function renderAuthState() {
     ? 'Apple 登录'
     : user?.provider === 'apple-dev'
       ? '本机 Apple 体验账号'
-      : user?.account
+      : user?.provider === 'mock'
+        ? '体验账号'
+        : user?.account
   elements.userAvatar.textContent = avatar
   elements.userName.textContent = name
   elements.profileAvatar.textContent = avatar
@@ -588,12 +619,13 @@ function renderAuthState() {
 function openAuthPanel(mode = 'login') {
   authMode = mode
   const isRegister = authMode === 'register'
-  elements.authTitle.textContent = isRegister ? '创建本机账号' : '登录一起记'
+  elements.authTitle.textContent = isRegister ? '创建本机账号' : '体验一起记'
   elements.authCopy.textContent = isRegister
-    ? '推荐优先使用 Apple 登录；本机账号适合暂时在当前设备体验家庭空间。'
-    : '推荐使用 Apple 登录。登录后每笔账会记录是谁记的，也能加入同一个家庭空间。'
+    ? '真实账号系统先放一放；本机账号仍保留给后续测试。'
+    : '账号登录先 mock 掉，点“体验账号进入”即可直接检查记账、家庭账本、资产和预算流程。'
   elements.authSubmit.textContent = isRegister ? '创建账号' : '登录'
-  elements.authModeToggle.textContent = isRegister ? '已有账号？去登录' : '没有账号？创建一个'
+  elements.authModeToggle.textContent = isRegister ? '返回体验登录' : '使用本机账号登录 / 注册'
+  elements.authForm.hidden = !isRegister
   elements.authNameField.hidden = !isRegister
   elements.authInviteField.hidden = !isRegister
   if (isRegister) {
@@ -602,7 +634,7 @@ function openAuthPanel(mode = 'login') {
   elements.authError.textContent = ''
   elements.authPanel.hidden = false
   elements.sheetBackdrop.hidden = false
-  window.setTimeout(() => elements.authAccount.focus(), 60)
+  if (isRegister) window.setTimeout(() => elements.authAccount.focus(), 60)
 }
 
 function closeAuthPanel() {
@@ -1931,7 +1963,9 @@ function openAuthManager() {
     ? 'Apple 登录'
     : user.provider === 'apple-dev'
       ? '本机 Apple 体验账号'
-      : '本机账号'
+      : user.provider === 'mock'
+        ? '体验账号'
+        : '本机账号'
   openManager('账号与家庭', user.name, `
     <div class="manager-copy">
       <strong>${escapeHtml(user.name)}</strong>
@@ -2248,9 +2282,9 @@ qs('.privacy-toggle').addEventListener('click', () => {
 
 elements.userMenu.addEventListener('click', openAuthManager)
 elements.manageAuth.addEventListener('click', openAuthManager)
-elements.appleLoginButton.addEventListener('click', signInWithApple)
+elements.appleLoginButton.addEventListener('click', loginWithMockAccount)
 elements.appleConfigButton.addEventListener('click', openAppleConfigManager)
-elements.authModeToggle.addEventListener('click', () => openAuthPanel(authMode === 'login' ? 'register' : 'login'))
+elements.authModeToggle.addEventListener('click', () => openAuthPanel(elements.authForm.hidden ? 'register' : 'login'))
 elements.authForm.addEventListener('submit', (event) => {
   event.preventDefault()
   handleAuthSubmit()
