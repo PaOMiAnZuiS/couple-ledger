@@ -131,14 +131,14 @@ type CycleStats = {
 - `index.html`：Couple Wealth 移动端信息架构。
 - `src/static.css`：深色资产绿品牌视觉系统、响应式移动端布局。
 - `src/static.js`：攒钱周期、收入/副业、目标存款、现金池、个人/共同资产池隔离、流水 CRUD。
-- `src/data/*`：本机存储与 Supabase 仓储 Adapter，隔离 UI 和后端实现。
+- `src/data/*`：本机存储与 Supabase 运行时仓储 Adapter，隔离 UI 和后端实现。
 - `supabase/schema.sql`：Postgres 表结构、索引、RLS policy 和成员权限边界。
 - `docs/IOS_SHORTCUTS.md`：iOS 快捷指令、Siri、OCR、分享菜单和自动化设计。
 
 ## 11. 版本规划
 
-- v1：总览、资产、目标、流水、工资系统、攒钱周期、共同资产池、本机模式。
-- v2：Supabase Auth / Realtime 云同步、OCR、自动分类、快捷方式、小组件。
+- v1：总览、资产、目标、流水、工资系统、攒钱周期、共同资产池、本机模式、Supabase 基础云同步。
+- v2：正式账号登录、OCR、自动分类、快捷方式、小组件。
 - v3：投资增强、趋势洞察、长期目标、自建后端迁移选项。
 
 产品灵魂：

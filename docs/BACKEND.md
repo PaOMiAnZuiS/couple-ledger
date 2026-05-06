@@ -13,15 +13,24 @@
 
 我的 -> 云同步 -> 后端模式
 
-这里可以保存 Supabase URL 和 anon public key。注意不要把 `service_role` key 填到前端。
+这里可以保存 Supabase URL 和 anon public key。切到 Supabase 后，前端会：
+
+- 使用 Supabase Anonymous Auth 建立当前浏览器的云端身份。
+- 自动创建个人 / 共同资产池和 owner membership。
+- 把本机账户、分类、攒钱计划、周期流水和流水快照同步到 Postgres。
+- 订阅 Realtime，在其它客户端写入后自动拉取最新快照。
+
+注意不要把 `service_role` key 填到前端。
 
 ## Supabase 建库
 
 1. 新建 Supabase 项目。
 2. 打开 SQL Editor。
 3. 执行 `supabase/schema.sql`。
-4. 在 Authentication 里开启需要的登录方式。
+4. 在 Authentication 里开启 Anonymous sign-ins。
 5. 前端只使用 anon key，所有业务表通过 RLS 控制权限。
+
+当前阶段使用匿名登录，适合先把数据链路跑通。后续接邮箱、Apple 登录或自建账号系统时，UI 侧仍走同一个 repository 边界。
 
 ## 数据模型
 

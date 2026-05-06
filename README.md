@@ -36,7 +36,7 @@ npm start
 ## 后端
 
 - 默认：本机 `localStorage`，GitHub Pages / Cloudflare Pages 可直接预览。
-- 预留：Supabase Postgres + Auth + Realtime + RLS。
+- 已接入：Supabase Postgres + Anonymous Auth + Realtime + RLS。
 - 数据边界：`src/data/*`，UI 不直接绑定具体 DB。
 - Schema：`supabase/schema.sql`。
 - 说明：`docs/BACKEND.md`。

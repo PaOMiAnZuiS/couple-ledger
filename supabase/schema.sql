@@ -121,7 +121,9 @@ create table if not exists public.recurring_rules (
   client_id text not null,
   title text not null,
   category_id uuid references public.categories(id),
+  category_client_id text,
   account_id uuid references public.accounts(id),
+  account_client_id text,
   amount numeric(14, 2) not null default 0,
   cycle text not null,
   next_on date not null,
@@ -131,6 +133,9 @@ create table if not exists public.recurring_rules (
   deleted_at timestamptz,
   unique (space_id, client_id)
 );
+
+alter table public.recurring_rules add column if not exists category_client_id text;
+alter table public.recurring_rules add column if not exists account_client_id text;
 
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),

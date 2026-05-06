@@ -1,6 +1,19 @@
 import { createLocalWealthStore, isSupabaseConfigured, loadBackendConfig, saveBackendConfig } from './data/wealth-store.js'
+import { createSupabaseClient, createSupabaseWealthRepository } from './data/supabase-repository.js'
 
 const wealthStore = createLocalWealthStore()
+const cloudBackend = {
+  client: null,
+  repo: null,
+  channel: null,
+  ready: false,
+  loading: false,
+  syncing: false,
+  applyingSnapshot: false,
+  error: '',
+  lastSyncedAt: '',
+  syncTimer: 0,
+}
 
 const categories = [
   { id: 'food', name: '餐饮', icon: '食', color: '#ebc08a', type: 'expense', budget: 4200 },
@@ -648,7 +661,7 @@ function renderAuthState() {
   elements.profileAvatar.textContent = avatar
   elements.profileName.textContent = name
   elements.profileMeta.textContent = user
-    ? `${accountLabel} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'}`
+    ? `${accountLabel} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'} · ${cloudStatusText()}`
     : '进入后可管理成员、共同资产池'
 }
 
@@ -742,6 +755,7 @@ function loadAccounts() {
 
 function persistAccounts() {
   wealthStore.saveAccounts(accounts)
+  queueCloudSync()
 }
 
 function loadRecurringBills() {
@@ -750,6 +764,7 @@ function loadRecurringBills() {
 
 function persistRecurringBills() {
   wealthStore.saveRecurringRules(recurringBills)
+  queueCloudSync()
 }
 
 function applyStoredCategorySettings() {
@@ -758,6 +773,7 @@ function applyStoredCategorySettings() {
 
 function persistCategorySettings() {
   wealthStore.saveCategorySettings(categories)
+  queueCloudSync()
 }
 
 function applyStoredIncomePlans() {
@@ -766,6 +782,7 @@ function applyStoredIncomePlans() {
 
 function persistIncomePlans() {
   wealthStore.saveIncomePlans(incomePlans)
+  queueCloudSync()
 }
 
 function applyStoredLedgerSpaces() {
@@ -774,10 +791,12 @@ function applyStoredLedgerSpaces() {
 
 function persistLedgerSpaces() {
   wealthStore.saveLedgerSpaces(ledgerSpaces)
+  queueCloudSync()
 }
 
 function persist() {
   wealthStore.saveTransactions(state.transactions)
+  queueCloudSync()
 }
 
 function normalizeTransactions(items) {
@@ -805,6 +824,161 @@ function withSeedBackfill(items) {
   const existing = new Set(normalized.map(transactionKey))
   const missingSeeds = seedTransactions.filter((item) => !existing.has(transactionKey(item)))
   return normalizeTransactions([...missingSeeds, ...normalized])
+}
+
+function cloudStatusText() {
+  const config = loadBackendConfig()
+  if (!isSupabaseConfigured(config)) return '本机模式'
+  if (cloudBackend.loading) return '云端连接中'
+  if (cloudBackend.syncing) return '云端同步中'
+  if (cloudBackend.ready) return cloudBackend.lastSyncedAt ? `云端已同步 ${formatClock(cloudBackend.lastSyncedAt)}` : '云端已连接'
+  if (cloudBackend.error) return '云端连接失败'
+  return '待连接云端'
+}
+
+function formatClock(value) {
+  const date = value ? new Date(value) : new Date()
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+}
+
+function cloudSnapshotPayload() {
+  return {
+    user: currentUser() || ensureLocalExperienceSession(),
+    ledgerSpaces,
+    categories,
+    accounts,
+    recurringBills,
+    incomePlans,
+    savingGoals,
+    transactions: state.transactions,
+    defaultHouseholdId,
+  }
+}
+
+function applyCloudSnapshot(snapshot) {
+  cloudBackend.applyingSnapshot = true
+  try {
+    if (Array.isArray(snapshot.accounts)) {
+      accounts = snapshot.accounts
+      persistAccounts()
+    }
+    if (Array.isArray(snapshot.recurringRules)) {
+      recurringBills = snapshot.recurringRules
+      persistRecurringBills()
+    }
+    if (Array.isArray(snapshot.transactions)) {
+      state.transactions = normalizeTransactions(snapshot.transactions)
+      persist()
+    }
+    if (snapshot.incomePlans && typeof snapshot.incomePlans === 'object') {
+      Object.entries(snapshot.incomePlans).forEach(([bookId, plan]) => {
+        if (incomePlans[bookId]) Object.assign(incomePlans[bookId], plan)
+      })
+      persistIncomePlans()
+    }
+    if (snapshot.categories?.length) {
+      snapshot.categories.forEach((remoteCategory) => {
+        const category = categories.find((item) => item.id === remoteCategory.id)
+        if (category && Number.isFinite(Number(remoteCategory.budget))) category.budget = Number(remoteCategory.budget)
+      })
+      persistCategorySettings()
+    }
+  } finally {
+    cloudBackend.applyingSnapshot = false
+  }
+}
+
+async function startCloudBackend({ force = false, syncLocal = false } = {}) {
+  const config = loadBackendConfig()
+  if (!isSupabaseConfigured(config)) {
+    cloudBackend.ready = false
+    cloudBackend.error = ''
+    return false
+  }
+  if (cloudBackend.ready && !force) return true
+  cloudBackend.loading = true
+  cloudBackend.error = ''
+  renderAuthState()
+  try {
+    cloudBackend.client = await createSupabaseClient(config)
+    cloudBackend.repo = createSupabaseWealthRepository(cloudBackend.client)
+    await cloudBackend.repo.ensureSession(currentUser() || ensureLocalExperienceSession())
+    const remoteSpaces = await cloudBackend.repo.listSpaces()
+    if (syncLocal || remoteSpaces.length === 0) {
+      await cloudBackend.repo.saveSnapshot(cloudSnapshotPayload())
+    }
+    const snapshot = await cloudBackend.repo.loadSnapshot()
+    const hasRemoteData = Boolean(
+      snapshot.accounts?.length ||
+      snapshot.transactions?.length ||
+      snapshot.recurringRules?.length ||
+      Object.keys(snapshot.incomePlans || {}).length
+    )
+    if (syncLocal || remoteSpaces.length === 0 || hasRemoteData) applyCloudSnapshot(snapshot)
+    if (cloudBackend.channel?.unsubscribe) await cloudBackend.channel.unsubscribe()
+    cloudBackend.channel = cloudBackend.repo.subscribeToSpaces(() => {
+      window.clearTimeout(cloudBackend.syncTimer)
+      cloudBackend.syncTimer = window.setTimeout(loadCloudSnapshot, 700)
+    })
+    cloudBackend.ready = true
+    cloudBackend.lastSyncedAt = new Date().toISOString()
+    renderApp()
+    return true
+  } catch (error) {
+    cloudBackend.ready = false
+    cloudBackend.error = error?.message || '云端连接失败'
+    renderApp()
+    return false
+  } finally {
+    cloudBackend.loading = false
+    renderAuthState()
+  }
+}
+
+async function loadCloudSnapshot() {
+  if (!cloudBackend.ready || !cloudBackend.repo || cloudBackend.syncing) return
+  try {
+    const snapshot = await cloudBackend.repo.loadSnapshot()
+    applyCloudSnapshot(snapshot)
+    cloudBackend.lastSyncedAt = new Date().toISOString()
+    renderApp()
+  } catch (error) {
+    cloudBackend.error = error?.message || '云端拉取失败'
+    renderAuthState()
+  }
+}
+
+function queueCloudSync() {
+  if (cloudBackend.applyingSnapshot || !cloudBackend.ready || !cloudBackend.repo) return
+  window.clearTimeout(cloudBackend.syncTimer)
+  cloudBackend.syncTimer = window.setTimeout(flushCloudSync, 500)
+}
+
+async function flushCloudSync() {
+  if (!cloudBackend.ready || !cloudBackend.repo || cloudBackend.syncing) return
+  cloudBackend.syncing = true
+  renderAuthState()
+  try {
+    await cloudBackend.repo.saveSnapshot(cloudSnapshotPayload())
+    cloudBackend.error = ''
+    cloudBackend.lastSyncedAt = new Date().toISOString()
+  } catch (error) {
+    cloudBackend.error = error?.message || '云端同步失败'
+  } finally {
+    cloudBackend.syncing = false
+    renderAuthState()
+  }
+}
+
+async function deleteCloudTransaction(item) {
+  if (!item || !cloudBackend.ready || !cloudBackend.repo) return
+  try {
+    await cloudBackend.repo.softDeleteTransactionForBook(item.bookId || 'family', item.id)
+    cloudBackend.lastSyncedAt = new Date().toISOString()
+  } catch (error) {
+    cloudBackend.error = error?.message || '云端删除失败'
+    renderAuthState()
+  }
 }
 
 function categoryById(id) {
@@ -1986,7 +2160,12 @@ function openSettingPanel(setting) {
     ledgerSpaces,
     backendMode: backendConfig.mode,
   }, null, 2)
-  const cloudReady = isSupabaseConfigured(backendConfig)
+  const supabaseConfigured = isSupabaseConfigured(backendConfig)
+  const cloudCopy = cloudBackend.error
+    ? cloudBackend.error
+    : supabaseConfigured
+      ? '已接入 Supabase 运行时。保存配置后会匿名登录、创建资产池、同步本机数据，并订阅 Realtime。'
+      : '默认使用本机 localStorage。填入 Supabase URL 和 anon key 后即可切到云端。'
   const titles = {
     theme: '主题设置',
     export: '数据导入导出',
@@ -2011,7 +2190,7 @@ function openSettingPanel(setting) {
       <button class="primary-button full-button" type="button" data-toggle-private>隐藏 / 显示金额</button>
     `,
     sync: `
-      <div class="manager-copy"><strong>${cloudReady ? 'Supabase 配置已保存' : '当前为本机模式'}</strong><span>前端已经通过数据 Adapter 隔离本机存储和云端实现。填入 Supabase 配置后，可继续接入真实登录、云同步和 Realtime。</span></div>
+      <div class="manager-copy"><strong>${cloudStatusText()}</strong><span>${escapeHtml(cloudCopy)}</span></div>
       <form class="manager-form" data-sync-config-form>
         <label>后端模式
           <select name="mode">
@@ -2026,6 +2205,10 @@ function openSettingPanel(setting) {
           <button type="submit" class="primary-button">保存后端配置</button>
         </div>
       </form>
+      <div class="manager-actions">
+        <span>${cloudBackend.lastSyncedAt ? `最近同步 ${formatClock(cloudBackend.lastSyncedAt)}` : '尚未完成云同步'}</span>
+        <button type="button" class="primary-button" data-cloud-sync-now>${cloudBackend.ready ? '立即同步' : '连接云端'}</button>
+      </div>
       <div class="manager-list">
         <div class="manager-row"><span>${iconSvg('shield')}</span><div><strong>RLS 权限边界</strong><em>profiles / asset_spaces / memberships 按成员角色隔离。</em></div></div>
         <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>共同资产表</strong><em>accounts / transactions / goals / recurring_rules / income_plans</em></div></div>
@@ -2426,6 +2609,7 @@ elements.groupedLedger.addEventListener('click', (event) => {
     const deleted = state.transactions.find((item) => item.id === deleteButton.dataset.delete)
     if (deleted) applyAccountDelta(deleted, -1)
     state.transactions = state.transactions.filter((item) => item.id !== deleteButton.dataset.delete)
+    deleteCloudTransaction(deleted)
     persist()
     renderApp()
     return
@@ -2668,6 +2852,17 @@ elements.managerBody.addEventListener('click', async (event) => {
     }
     return
   }
+  if (event.target.closest('[data-cloud-sync-now]')) {
+    const button = event.target.closest('[data-cloud-sync-now]')
+    button.textContent = '连接中...'
+    const ok = await startCloudBackend({ force: true, syncLocal: true })
+    openSettingPanel('sync')
+    if (!ok) {
+      const nextButton = elements.managerBody.querySelector('[data-cloud-sync-now]')
+      if (nextButton) nextButton.textContent = '重试连接'
+    }
+    return
+  }
   if (event.target.closest('[data-toggle-private]')) {
     document.body.classList.toggle('is-private')
   }
@@ -2694,7 +2889,7 @@ elements.managerBody.addEventListener('click', async (event) => {
   }
 })
 
-elements.managerBody.addEventListener('submit', (event) => {
+elements.managerBody.addEventListener('submit', async (event) => {
   event.preventDefault()
   const accountForm = event.target.closest('[data-account-form]')
   const budgetForm = event.target.closest('[data-budget-form]')
@@ -2711,8 +2906,14 @@ elements.managerBody.addEventListener('submit', (event) => {
       supabaseAnonKey: String(form.get('supabaseAnonKey') || '').trim(),
     })
     const button = syncConfigForm.querySelector('.primary-button')
-    if (button) button.textContent = '已保存'
-    window.setTimeout(() => openSettingPanel('sync'), 500)
+    if (button) button.textContent = '连接中...'
+    if (isSupabaseConfigured(loadBackendConfig())) {
+      await startCloudBackend({ force: true, syncLocal: true })
+    } else {
+      cloudBackend.ready = false
+      cloudBackend.error = ''
+    }
+    openSettingPanel('sync')
     return
   }
   if (appleConfigForm) {
@@ -2831,3 +3032,4 @@ elements.dateInput.value = todayValue()
 ensureLocalExperienceSession()
 renderApp()
 applyShortcutParams(new URLSearchParams(window.location.search))
+startCloudBackend()
