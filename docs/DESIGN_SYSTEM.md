@@ -72,4 +72,6 @@
 - `Goal Card` -> `.goal-card`
 - `Floating Entry` -> `.floating-entry`
 - `Tab Bar` -> `.tab-bar`
+- `Backend Config` -> 我的 / 云同步 / `data-sync-config-form`
+- `Data Adapter` -> `src/data/wealth-store.js`, `src/data/supabase-repository.js`
 - Tokens -> `src/static.css` 末尾的 `Couple Wealth Figma system v5` 变量层

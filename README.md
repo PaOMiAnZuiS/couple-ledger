@@ -33,6 +33,14 @@ npm start
 - 情侣/家庭：我的资产池与共同资产池快速切换，共同账户、成员记录、垫付机制。
 - 自动化预留：OCR、快捷指令、Siri、周期流水、小组件。
 
+## 后端
+
+- 默认：本机 `localStorage`，GitHub Pages / Cloudflare Pages 可直接预览。
+- 预留：Supabase Postgres + Auth + Realtime + RLS。
+- 数据边界：`src/data/*`，UI 不直接绑定具体 DB。
+- Schema：`supabase/schema.sql`。
+- 说明：`docs/BACKEND.md`。
+
 ## 部署
 
 这是零依赖静态应用，可以免费部署到 Cloudflare Pages。
@@ -42,5 +50,7 @@ npm start
 ## 产品文档
 
 见 [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md)。
+
+后端实现方案见 [docs/BACKEND.md](docs/BACKEND.md)。
 
 快捷指令与 iOS 自动化方案见 [docs/IOS_SHORTCUTS.md](docs/IOS_SHORTCUTS.md)。

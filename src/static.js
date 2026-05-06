@@ -1,3 +1,7 @@
+import { createLocalWealthStore, isSupabaseConfigured, loadBackendConfig, saveBackendConfig } from './data/wealth-store.js'
+
+const wealthStore = createLocalWealthStore()
+
 const categories = [
   { id: 'food', name: '餐饮', icon: '食', color: '#ebc08a', type: 'expense', budget: 4200 },
   { id: 'transport', name: '交通', icon: '行', color: '#c2d59b', type: 'expense', budget: 1200 },
@@ -238,12 +242,12 @@ const state = {
   dayFilter: '',
   addType: 'expense',
   selectedCategory: 'food',
-  activeBook: localStorage.getItem('hezang-active-book') || 'family',
-  pendingBook: localStorage.getItem('hezang-active-book') || 'family',
+  activeBook: wealthStore.loadActiveSpace('family'),
+  pendingBook: wealthStore.loadActiveSpace('family'),
   pendingMember: currentUser()?.name || '我',
   editingId: '',
   transactions: loadTransactions(),
-  currentUserId: localStorage.getItem('hezang-session-user') || '',
+  currentUserId: wealthStore.loadSessionUserId(),
 }
 
 const money = new Intl.NumberFormat('zh-CN', {
@@ -412,18 +416,11 @@ function normalizeAccountId(value) {
 }
 
 function loadUsers() {
-  const stored = localStorage.getItem('hezang-users')
-  if (!stored) return []
-  try {
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+  return wealthStore.loadUsers()
 }
 
 function persistUsers() {
-  localStorage.setItem('hezang-users', JSON.stringify(users))
+  wealthStore.saveUsers(users)
 }
 
 function loadAppleConfig() {
@@ -483,7 +480,7 @@ function decodeJwtPayload(token) {
 }
 
 function currentUser() {
-  const sessionUserId = localStorage.getItem('hezang-session-user')
+  const sessionUserId = wealthStore.loadSessionUserId()
   return users.find((item) => item.id === sessionUserId) || null
 }
 
@@ -521,7 +518,7 @@ function ensureLocalExperienceSession() {
     users = users.map((item) => (item.id === user.id ? user : item))
   }
   persistUsers()
-  localStorage.setItem('hezang-session-user', user.id)
+  wealthStore.saveSessionUserId(user.id)
   syncUserIntoFamily(user)
   state.currentUserId = user.id
   state.pendingMember = user.name
@@ -578,7 +575,7 @@ function loginWithAppleProfile(profile) {
     users = users.map((item) => (item.id === user.id ? user : item))
   }
   persistUsers()
-  localStorage.setItem('hezang-session-user', user.id)
+  wealthStore.saveSessionUserId(user.id)
   syncUserIntoFamily(user)
   state.currentUserId = user.id
   state.pendingMember = user.name
@@ -707,7 +704,7 @@ function handleAuthSubmit() {
     }
     users.push(user)
     persistUsers()
-    localStorage.setItem('hezang-session-user', user.id)
+    wealthStore.saveSessionUserId(user.id)
     syncUserIntoFamily(user)
     state.currentUserId = user.id
     state.pendingMember = user.name
@@ -720,7 +717,7 @@ function handleAuthSubmit() {
     elements.authError.textContent = '账号或密码不对。'
     return
   }
-  localStorage.setItem('hezang-session-user', user.id)
+  wealthStore.saveSessionUserId(user.id)
   syncUserIntoFamily(user)
   state.currentUserId = user.id
   state.pendingMember = user.name
@@ -729,111 +726,58 @@ function handleAuthSubmit() {
 }
 
 function logout() {
-  localStorage.removeItem('hezang-session-user')
+  wealthStore.clearSessionUserId()
   state.currentUserId = ''
   state.pendingMember = '我'
   renderApp()
 }
 
 function loadTransactions() {
-  const stored = localStorage.getItem('hezang-pro-transactions')
-  if (!stored) return normalizeTransactions(seedTransactions)
-  try {
-    return withSeedBackfill(JSON.parse(stored))
-  } catch {
-    return normalizeTransactions(seedTransactions)
-  }
+  return wealthStore.loadTransactions(seedTransactions, withSeedBackfill)
 }
 
 function loadAccounts() {
-  const stored = localStorage.getItem('hezang-accounts')
-  if (!stored) return defaultAccounts.map((item) => ({ ...item }))
-  try {
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) && parsed.length ? parsed : defaultAccounts.map((item) => ({ ...item }))
-  } catch {
-    return defaultAccounts.map((item) => ({ ...item }))
-  }
+  return wealthStore.loadAccounts(defaultAccounts)
 }
 
 function persistAccounts() {
-  localStorage.setItem('hezang-accounts', JSON.stringify(accounts))
+  wealthStore.saveAccounts(accounts)
 }
 
 function loadRecurringBills() {
-  const stored = localStorage.getItem('hezang-recurring-bills')
-  if (!stored) return defaultRecurringBills.map((item) => ({ ...item }))
-  try {
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed : defaultRecurringBills.map((item) => ({ ...item }))
-  } catch {
-    return defaultRecurringBills.map((item) => ({ ...item }))
-  }
+  return wealthStore.loadRecurringRules(defaultRecurringBills)
 }
 
 function persistRecurringBills() {
-  localStorage.setItem('hezang-recurring-bills', JSON.stringify(recurringBills))
+  wealthStore.saveRecurringRules(recurringBills)
 }
 
 function applyStoredCategorySettings() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('hezang-category-settings') || '{}')
-    categories.forEach((item) => {
-      if (Number.isFinite(Number(stored[item.id]?.budget))) item.budget = Number(stored[item.id].budget)
-    })
-  } catch {
-    // Ignore broken local settings and keep defaults.
-  }
+  wealthStore.applyCategorySettings(categories)
 }
 
 function persistCategorySettings() {
-  localStorage.setItem(
-    'hezang-category-settings',
-    JSON.stringify(Object.fromEntries(categories.map((item) => [item.id, { budget: item.budget }]))),
-  )
+  wealthStore.saveCategorySettings(categories)
 }
 
 function applyStoredIncomePlans() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('hezang-income-plans') || '{}')
-    Object.entries(stored).forEach(([bookId, plan]) => {
-      if (!incomePlans[bookId]) return
-      ;['payday', 'salary', 'sideTarget', 'savingTarget'].forEach((key) => {
-        if (Number.isFinite(Number(plan[key]))) incomePlans[bookId][key] = Number(plan[key])
-      })
-      if (Array.isArray(plan.sideNames)) incomePlans[bookId].sideNames = plan.sideNames
-    })
-  } catch {
-    // Ignore broken local settings and keep defaults.
-  }
+  wealthStore.applyIncomePlans(incomePlans)
 }
 
 function persistIncomePlans() {
-  localStorage.setItem('hezang-income-plans', JSON.stringify(incomePlans))
+  wealthStore.saveIncomePlans(incomePlans)
 }
 
 function applyStoredLedgerSpaces() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('hezang-ledger-spaces') || '{}')
-    ledgerSpaces.forEach((space) => {
-      if (Array.isArray(stored[space.id]?.members) && stored[space.id].members.length) {
-        space.members = stored[space.id].members
-      }
-    })
-  } catch {
-    // Ignore broken local settings and keep defaults.
-  }
+  wealthStore.applyLedgerSpaces(ledgerSpaces)
 }
 
 function persistLedgerSpaces() {
-  localStorage.setItem(
-    'hezang-ledger-spaces',
-    JSON.stringify(Object.fromEntries(ledgerSpaces.map((item) => [item.id, { members: item.members }]))),
-  )
+  wealthStore.saveLedgerSpaces(ledgerSpaces)
 }
 
 function persist() {
-  localStorage.setItem('hezang-pro-transactions', JSON.stringify(state.transactions))
+  wealthStore.saveTransactions(state.transactions)
 }
 
 function normalizeTransactions(items) {
@@ -2030,7 +1974,18 @@ function openRecurringManager(recurringId = '') {
 }
 
 function openSettingPanel(setting) {
-  const payload = JSON.stringify({ users, currentUser: currentUser()?.id || '', transactions: state.transactions, accounts, recurringBills, incomePlans }, null, 2)
+  const backendConfig = loadBackendConfig()
+  const payload = JSON.stringify({
+    users,
+    currentUser: currentUser()?.id || '',
+    transactions: state.transactions,
+    accounts,
+    recurringBills,
+    incomePlans,
+    ledgerSpaces,
+    backendMode: backendConfig.mode,
+  }, null, 2)
+  const cloudReady = isSupabaseConfigured(backendConfig)
   const titles = {
     theme: '主题设置',
     export: '数据导入导出',
@@ -2055,10 +2010,24 @@ function openSettingPanel(setting) {
       <button class="primary-button full-button" type="button" data-toggle-private>隐藏 / 显示金额</button>
     `,
     sync: `
-      <div class="manager-copy"><strong>云同步准备就绪</strong><span>当前免费版已把数据模型整理好。接 Supabase 后可实现你和老婆实时共用同一个资产池。</span></div>
+      <div class="manager-copy"><strong>${cloudReady ? 'Supabase 配置已保存' : '当前为本机模式'}</strong><span>前端已经通过数据 Adapter 隔离本机存储和云端实现。填入 Supabase 配置后，可继续接入真实登录、云同步和 Realtime。</span></div>
+      <form class="manager-form" data-sync-config-form>
+        <label>后端模式
+          <select name="mode">
+            <option value="local" ${backendConfig.mode !== 'supabase' ? 'selected' : ''}>本机 localStorage</option>
+            <option value="supabase" ${backendConfig.mode === 'supabase' ? 'selected' : ''}>Supabase Postgres</option>
+          </select>
+        </label>
+        <label>Supabase URL<input name="supabaseUrl" value="${escapeHtml(backendConfig.supabaseUrl)}" placeholder="https://xxxx.supabase.co" /></label>
+        <label>Supabase anon key<input name="supabaseAnonKey" value="${escapeHtml(backendConfig.supabaseAnonKey)}" placeholder="只填 anon public key，不填 service_role" /></label>
+        <div class="manager-actions">
+          <span>DB schema 在 supabase/schema.sql</span>
+          <button type="submit" class="primary-button">保存后端配置</button>
+        </div>
+      </form>
       <div class="manager-list">
-        <div class="manager-row"><span>${iconSvg('shield')}</span><div><strong>需要 Supabase URL</strong><em>项目地址与匿名 key</em></div></div>
-        <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>共同资产表</strong><em>spaces / members / transactions / accounts / goals</em></div></div>
+        <div class="manager-row"><span>${iconSvg('shield')}</span><div><strong>RLS 权限边界</strong><em>profiles / asset_spaces / memberships 按成员角色隔离。</em></div></div>
+        <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>共同资产表</strong><em>accounts / transactions / goals / recurring_rules / income_plans</em></div></div>
       </div>
     `,
   }
@@ -2158,7 +2127,7 @@ function openSheet(template) {
     state.pendingBook = state.activeBook
     state.pendingMember = user.name
     renderAddSheet()
-    elements.accountSelect.value = localStorage.getItem(`hezang-last-account-${state.pendingBook}`) || currentBook().defaultAccountId
+    elements.accountSelect.value = wealthStore.loadLastAccount(state.pendingBook) || currentBook().defaultAccountId
     elements.dateInput.value = todayValue()
   }
   window.setTimeout(() => elements.amountInput.focus(), 80)
@@ -2223,8 +2192,8 @@ function addTransactionFromSheet() {
   nextTransaction.payer = state.pendingMember || user.name
   nextTransaction.owner = state.pendingBook === 'family' ? '全家' : state.pendingMember || user.name
   nextTransaction.isAdvance = tags.includes('我垫付')
-  localStorage.setItem(`hezang-last-account-${state.pendingBook}`, nextTransaction.accountId)
-  localStorage.setItem(`hezang-last-category-${state.pendingBook}-${state.addType}`, nextTransaction.categoryId)
+  wealthStore.saveLastAccount(state.pendingBook, nextTransaction.accountId)
+  wealthStore.saveLastCategory(state.pendingBook, state.addType, nextTransaction.categoryId)
   if (state.editingId) {
     nextTransaction.id = state.editingId
     const original = state.transactions.find((item) => item.id === state.editingId)
@@ -2245,7 +2214,7 @@ function addTransactionFromSheet() {
   state.pendingBook = state.activeBook
   state.pendingMember = user.name
   state.editingId = ''
-  localStorage.setItem('hezang-active-book', state.activeBook)
+  wealthStore.saveActiveSpace(state.activeBook)
   syncEntryTypeButtons()
   closeSheet()
   renderApp()
@@ -2343,7 +2312,7 @@ function parseQuickEntry(text) {
   const categoryId = inferCategory(text)
   const type = /收入|工资|副业|奖金/.test(text) ? 'income' : 'expense'
   const bookId = state.activeBook
-  const accountId = localStorage.getItem(`hezang-last-account-${bookId}`) || currentBook().defaultAccountId
+  const accountId = wealthStore.loadLastAccount(bookId) || currentBook().defaultAccountId
   const note = text.replace(amount, '').replace(/元/g, '').trim() || categoryById(categoryId).name
   return {
     type,
@@ -2409,7 +2378,7 @@ elements.bookSwitcher.addEventListener('click', (event) => {
   state.pendingBook = state.activeBook
   state.pendingMember = '我'
   state.billFilter = 'all'
-  localStorage.setItem('hezang-active-book', state.activeBook)
+  wealthStore.saveActiveSpace(state.activeBook)
   renderApp()
 })
 
@@ -2470,7 +2439,7 @@ elements.groupedLedger.addEventListener('click', (event) => {
     applyAccountDelta(duplicate, 1)
     state.activeBook = 'family'
     state.pendingBook = 'family'
-    localStorage.setItem('hezang-active-book', state.activeBook)
+    wealthStore.saveActiveSpace(state.activeBook)
     persist()
     renderApp()
     return
@@ -2580,7 +2549,7 @@ elements.bookGrid.addEventListener('click', (event) => {
   if (bookButton) {
     state.activeBook = bookButton.dataset.profileBook
     state.pendingBook = state.activeBook
-    localStorage.setItem('hezang-active-book', state.activeBook)
+    wealthStore.saveActiveSpace(state.activeBook)
     renderApp()
     openLedgerManager()
     return
@@ -2677,7 +2646,7 @@ elements.managerBody.addEventListener('click', async (event) => {
       if (Array.isArray(parsed.users)) {
         users = parsed.users
         persistUsers()
-        if (parsed.currentUser) localStorage.setItem('hezang-session-user', parsed.currentUser)
+        if (parsed.currentUser) wealthStore.saveSessionUserId(parsed.currentUser)
       }
       if (parsed.incomePlans && typeof parsed.incomePlans === 'object') {
         Object.assign(incomePlans.personal, parsed.incomePlans.personal || {})
@@ -2725,6 +2694,19 @@ elements.managerBody.addEventListener('submit', (event) => {
   const recurringForm = event.target.closest('[data-recurring-form]')
   const profileForm = event.target.closest('[data-profile-form]')
   const appleConfigForm = event.target.closest('[data-apple-config-form]')
+  const syncConfigForm = event.target.closest('[data-sync-config-form]')
+  if (syncConfigForm) {
+    const form = new FormData(syncConfigForm)
+    saveBackendConfig({
+      mode: form.get('mode') || 'local',
+      supabaseUrl: String(form.get('supabaseUrl') || '').trim(),
+      supabaseAnonKey: String(form.get('supabaseAnonKey') || '').trim(),
+    })
+    const button = syncConfigForm.querySelector('.primary-button')
+    if (button) button.textContent = '已保存'
+    window.setTimeout(() => openSettingPanel('sync'), 500)
+    return
+  }
   if (appleConfigForm) {
     const form = new FormData(appleConfigForm)
     const clientId = String(form.get('clientId') || '').trim()
