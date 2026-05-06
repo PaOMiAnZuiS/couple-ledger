@@ -2026,6 +2026,11 @@ body::before {
   transform: translateY(1px) scale(0.99);
 }
 
+.apple-login-button:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 .auth-config-button {
   justify-self: center;
   color: rgba(232, 192, 138, 0.9);

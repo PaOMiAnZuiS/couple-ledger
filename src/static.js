@@ -217,6 +217,7 @@ const monthlyComparePersonal = [
 const defaultHouseholdId = 'FAMILY-520'
 let users = loadUsers()
 let authMode = 'login'
+let appleScriptPromise = null
 
 const state = {
   screen: 'home',
@@ -419,6 +420,35 @@ function persistAppleConfig(config) {
   localStorage.setItem('hezang-apple-config', JSON.stringify(config))
 }
 
+function loadAppleScript() {
+  if (window.AppleID?.auth) return Promise.resolve()
+  if (appleScriptPromise) return appleScriptPromise
+  appleScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-appleid-js]')
+    const script = existing || document.createElement('script')
+    const timer = window.setTimeout(() => {
+      appleScriptPromise = null
+      reject(new Error('Apple 登录脚本加载超时，请检查网络或先用本机 Apple 登录体验。'))
+    }, 9000)
+    script.onload = () => {
+      window.clearTimeout(timer)
+      resolve()
+    }
+    script.onerror = () => {
+      window.clearTimeout(timer)
+      appleScriptPromise = null
+      reject(new Error('Apple 登录脚本加载失败，请稍后重试。'))
+    }
+    if (!existing) {
+      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/zh_CN/appleid.auth.js'
+      script.async = true
+      script.dataset.appleidJs = 'true'
+      document.head.appendChild(script)
+    }
+  })
+  return appleScriptPromise
+}
+
 function decodeJwtPayload(token) {
   const [, payload] = String(token || '').split('.')
   if (!payload) return {}
@@ -503,11 +533,11 @@ async function signInWithApple() {
     openAppleConfigManager()
     return
   }
-  if (!window.AppleID?.auth) {
-    elements.authError.textContent = 'Apple 登录脚本还没加载完成，稍等几秒再试。'
-    return
-  }
+  elements.appleLoginButton.disabled = true
+  elements.appleLoginButton.dataset.loading = 'true'
+  elements.appleLoginButton.innerHTML = '<span></span>正在连接 Apple...'
   try {
+    await loadAppleScript()
     const nonce = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
     window.AppleID.auth.init({
       clientId: config.clientId,
@@ -530,6 +560,10 @@ async function signInWithApple() {
     })
   } catch (error) {
     elements.authError.textContent = error?.error || error?.message || 'Apple 登录已取消或配置未通过。'
+  } finally {
+    elements.appleLoginButton.disabled = false
+    elements.appleLoginButton.dataset.loading = 'false'
+    elements.appleLoginButton.innerHTML = '<span></span>使用 Apple 登录'
   }
 }
 
