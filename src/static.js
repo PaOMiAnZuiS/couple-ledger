@@ -48,22 +48,22 @@ const iconPaths = {
 const ledgerSpaces = [
   {
     id: 'personal',
-    name: '我的个人账本',
+    name: '我的资产池',
     shortName: '个人',
-    eyebrow: 'Personal Finance Space',
-    hero: '个人资产空间',
-    description: '个人资产、负债、报销、借入借出和自动识别都在这里闭环。',
+    eyebrow: 'Personal Wealth Space',
+    hero: '个人资产池',
+    description: '个人资产、负债、报销、借入借出和现金流记录都在这里闭环。',
     color: '#ebc08a',
     defaultAccountId: 'wechat',
     members: ['我'],
   },
   {
     id: 'family',
-    name: '家庭账本',
-    shortName: '家庭',
-    eyebrow: 'Shared Family Space',
-    hero: '家庭共同空间',
-    description: '共同账户、成员协作、家庭预算和垫付结算统一管理。',
+    name: '共同资产池',
+    shortName: '共同',
+    eyebrow: 'Shared Wealth Space',
+    hero: '共同资产池',
+    description: '共同账户、成员协作、攒钱目标和垫付结算统一管理。',
     color: '#ffb45e',
     defaultAccountId: 'family-card',
     members: ['我', '老婆', '父母'],
@@ -111,11 +111,11 @@ const defaultAccounts = [
 let accounts = loadAccounts()
 
 const books = [
-  { id: 'personal', name: '我的个人账本', members: '仅自己可见', role: '默认账本', color: '#4967ff', template: 'personal' },
-  { id: 'family', name: '家庭账本', members: '我、老婆', role: '管理员', color: '#101827' },
-  { id: 'travel', name: '旅行账本', members: '2 位成员', role: '成员', color: '#5d7cff' },
-  { id: 'renovation', name: '装修账本', members: '只读成员 1 位', role: '管理员', color: '#46c7a5' },
-  { id: 'love', name: '恋爱账本', members: '情侣模板', role: '模板', color: '#ee5f8c' },
+  { id: 'personal', name: '我的资产池', members: '仅自己可见', role: '默认资产池', color: '#4967ff', template: 'personal' },
+  { id: 'family', name: '共同资产池', members: '我、老婆', role: '管理员', color: '#101827' },
+  { id: 'travel', name: '旅行目标', members: '2 位成员', role: '成员', color: '#5d7cff' },
+  { id: 'renovation', name: '装修目标', members: '只读成员 1 位', role: '管理员', color: '#46c7a5' },
+  { id: 'love', name: '恋爱基金', members: '情侣模板', role: '模板', color: '#ee5f8c' },
 ]
 
 const defaultRecurringBills = [
@@ -126,6 +126,18 @@ const defaultRecurringBills = [
 ]
 
 let recurringBills = loadRecurringBills()
+
+const savingGoals = {
+  personal: [
+    { id: 'personal-buffer', title: '个人应急金', target: 80000, accountIds: ['cash', 'cmb', 'wechat', 'alipay'], due: '长期', icon: 'shield' },
+    { id: 'personal-invest', title: '长期投资', target: 120000, accountIds: ['investment'], due: '2026 Q4', icon: 'pie' },
+  ],
+  family: [
+    { id: 'family-buffer', title: '家庭备用金', target: 120000, accountIds: ['family-cash', 'family-card'], due: '长期', icon: 'shield' },
+    { id: 'renovation-goal', title: '装修基金', target: 80000, accountIds: ['renovation-fund'], due: '2026.10', icon: 'home' },
+    { id: 'travel-goal', title: '旅行基金', target: 30000, accountIds: ['travel-fund'], due: '2026.08', icon: 'suitcase' },
+  ],
+}
 
 const templates = [
   { title: '早餐', scope: 'personal', amount: 28, categoryId: 'food', accountId: 'wechat', note: '早餐', tags: '日常' },
@@ -140,16 +152,16 @@ const shortcutActions = [
   {
     id: 'quick-add',
     icon: '记',
-    title: '新增账单',
+    title: '补一笔流水',
     detail: '金额、分类、账户、成员、标签',
     params: 'shortcut=add&type=expense&book=personal&amount=35&note=早餐&category=food&account=wechat&member=我&tags=快捷指令',
   },
   {
     id: 'voice',
     icon: '声',
-    title: 'Siri 语音记账',
+    title: 'Siri 补流水',
     detail: '自然语言解析，低置信度二次确认',
-    params: 'shortcut=voice&text=家庭账本记一笔买菜86元',
+    params: 'shortcut=voice&text=共同资产池补一笔买菜86元',
   },
   {
     id: 'receipt',
@@ -161,17 +173,17 @@ const shortcutActions = [
   {
     id: 'family',
     icon: '家',
-    title: '家庭账本入口',
-    detail: '直接向家庭共同账户记账',
+    title: '共同资产入口',
+    detail: '直接向共同账户补流水',
     params: 'shortcut=add&type=expense&book=family&amount=128&note=超市购物&category=food&account=family-card&member=我&tags=家庭',
   },
 ]
 
 const automationRecipes = [
-  { title: '每天 22:00 补记账提醒', detail: 'Shortcut: 打开合账补记账面板', status: '建议开启' },
+  { title: '每天 22:00 补流水提醒', detail: 'Shortcut: 打开一起攒补流水面板', status: '建议开启' },
   { title: '每月 1 日自动生成工资', detail: 'App Intent: GenerateRecurringBillIntent', status: '可自动' },
   { title: '截图后检测支付凭证', detail: '分享菜单 / 照片输入 OCR 后确认', status: '需确认' },
-  { title: '到达公司提醒通勤支出', detail: '位置自动化 + 新增账单 Action', status: '场景化' },
+  { title: '到达公司提醒通勤流出', detail: '位置自动化 + 补流水 Action', status: '场景化' },
 ]
 
 const seedTransactions = [
@@ -298,10 +310,19 @@ const elements = {
   lineChart: qs('#lineChart'),
   trendNote: qs('#trendNote'),
   barChart: qs('#barChart'),
+  goalProgressAmount: qs('#goalProgressAmount'),
+  goalProgressMeta: qs('#goalProgressMeta'),
+  goalCountTag: qs('#goalCountTag'),
+  goalGrid: qs('#goalGrid'),
+  manageGoals: qs('#manageGoals'),
+  goalAdvice: qs('#goalAdvice'),
+  goalSavingTag: qs('#goalSavingTag'),
+  goalAllocation: qs('#goalAllocation'),
   assetScreenNet: qs('#assetScreenNet'),
   assetScreenMeta: qs('#assetScreenMeta'),
   assetAccountCount: qs('#assetAccountCount'),
   assetAccountList: qs('#assetAccountList'),
+  manageAssetAccounts: qs('#manageAssetAccounts'),
   netWorth: qs('#netWorth'),
   assetSummary: qs('#assetSummary'),
   profileAvatar: qs('#profileAvatar'),
@@ -466,11 +487,51 @@ function currentUser() {
   return users.find((item) => item.id === sessionUserId) || null
 }
 
+function ensureLocalExperienceSession() {
+  const existing = currentUser()
+  if (existing) {
+    syncUserIntoFamily(existing)
+    state.currentUserId = existing.id
+    state.pendingMember = existing.name || state.pendingMember || '我'
+    return existing
+  }
+
+  const inviteCode = new URLSearchParams(window.location.search).get('join')?.trim().toUpperCase() || defaultHouseholdId
+  const mockId = 'mock-couple-ledger-user'
+  let user = users.find((item) => item.id === mockId || item.account === 'mock:体验账号')
+  if (!user) {
+    user = {
+      id: mockId,
+      account: 'mock:体验账号',
+      name: '我',
+      passwordHash: '',
+      householdId: inviteCode,
+      role: 'admin',
+      provider: 'mock',
+      createdAt: new Date().toISOString(),
+    }
+    users.push(user)
+  } else {
+    user = {
+      ...user,
+      name: user.name || '我',
+      householdId: user.householdId || inviteCode,
+      provider: 'mock',
+    }
+    users = users.map((item) => (item.id === user.id ? user : item))
+  }
+  persistUsers()
+  localStorage.setItem('hezang-session-user', user.id)
+  syncUserIntoFamily(user)
+  state.currentUserId = user.id
+  state.pendingMember = user.name
+  return user
+}
+
 function requireUser() {
   const user = currentUser()
   if (user) return user
-  openAuthPanel('register')
-  return null
+  return ensureLocalExperienceSession()
 }
 
 function userInitial(name) {
@@ -527,29 +588,7 @@ function loginWithAppleProfile(profile) {
 }
 
 function loginWithMockAccount() {
-  const mockId = 'mock-couple-ledger-user'
-  let user = users.find((item) => item.id === mockId || item.account === 'mock:体验账号')
-  if (!user) {
-    user = {
-      id: mockId,
-      account: 'mock:体验账号',
-      name: '我',
-      passwordHash: '',
-      householdId: defaultHouseholdId,
-      role: 'admin',
-      provider: 'mock',
-      createdAt: new Date().toISOString(),
-    }
-    users.push(user)
-  } else {
-    user = { ...user, name: user.name || '我', householdId: user.householdId || defaultHouseholdId, provider: 'mock' }
-    users = users.map((item) => (item.id === user.id ? user : item))
-  }
-  persistUsers()
-  localStorage.setItem('hezang-session-user', user.id)
-  syncUserIntoFamily(user)
-  state.currentUserId = user.id
-  state.pendingMember = user.name
+  ensureLocalExperienceSession()
   closeManager()
   closeAuthPanel()
   renderApp()
@@ -613,16 +652,16 @@ function renderAuthState() {
   elements.profileName.textContent = name
   elements.profileMeta.textContent = user
     ? `${accountLabel} · ${user.householdId ? `家庭 ${user.householdId}` : '未加入家庭'}`
-    : '登录后可记录成员、加入家庭空间'
+    : '进入后可管理成员、共同资产池'
 }
 
 function openAuthPanel(mode = 'login') {
   authMode = mode
   const isRegister = authMode === 'register'
-  elements.authTitle.textContent = isRegister ? '创建本机账号' : '体验一起记'
+  elements.authTitle.textContent = isRegister ? '创建本机账号' : '体验一起攒'
   elements.authCopy.textContent = isRegister
     ? '真实账号系统先放一放；本机账号仍保留给后续测试。'
-    : '账号登录先 mock 掉，点“体验账号进入”即可直接检查记账、家庭账本、资产和预算流程。'
+    : '账号登录先 mock 掉，点“体验账号进入”即可直接检查共同资产、现金流和补流水流程。'
   elements.authSubmit.textContent = isRegister ? '创建账号' : '登录'
   elements.authModeToggle.textContent = isRegister ? '返回体验登录' : '使用本机账号登录 / 注册'
   elements.authForm.hidden = !isRegister
@@ -694,7 +733,6 @@ function logout() {
   state.currentUserId = ''
   state.pendingMember = '我'
   renderApp()
-  openAuthPanel('login')
 }
 
 function loadTransactions() {
@@ -920,6 +958,37 @@ function assetStatsForBook(bookId = state.activeBook) {
   }
 }
 
+function goalsForBook(bookId = state.activeBook) {
+  return (savingGoals[bookId] || savingGoals.family).map((goal) => {
+    const current = goal.accountIds
+      .map((accountId) => accounts.find((item) => item.id === accountId))
+      .filter(Boolean)
+      .reduce((sum, account) => sum + Math.max(0, account.balance), 0)
+    const percent = goal.target ? Math.min(100, Math.round((current / goal.target) * 100)) : 0
+    return {
+      ...goal,
+      current,
+      percent,
+      remaining: Math.max(0, goal.target - current),
+      primaryAccountId: goal.accountIds[0] || '',
+    }
+  })
+}
+
+function goalStatsForBook(bookId = state.activeBook) {
+  const goals = goalsForBook(bookId)
+  const target = goals.reduce((sum, goal) => sum + goal.target, 0)
+  const current = goals.reduce((sum, goal) => sum + Math.min(goal.current, goal.target), 0)
+  const remaining = goals.reduce((sum, goal) => sum + goal.remaining, 0)
+  return {
+    goals,
+    target,
+    current,
+    remaining,
+    percent: target ? Math.min(100, Math.round((current / target) * 100)) : 0,
+  }
+}
+
 function transactionsForBook(bookId = state.activeBook) {
   return state.transactions.filter((item) => (item.bookId || 'family') === bookId)
 }
@@ -1046,11 +1115,11 @@ function consumptionInsightForBook(bookId = state.activeBook, stats = cycleStats
   const entertainmentPrev = previous
     .filter((item) => item.type === 'expense' && ['travel', 'digital'].includes(item.categoryId))
     .reduce((sum, item) => sum + item.amount, 0)
-  if (stats.fixedReserved > stats.income * 0.38) return '本周期固定支出偏高，已经提前预留，日常消费可以轻一点。'
-  if (top?.id === 'food' && top.percent >= 0.34) return `餐饮支出占比 ${Math.round(top.percent * 100)}%，略高，稍微收一收就很好。`
-  if (entertainmentNow - entertainmentPrev > 500) return `娱乐和数码支出比上周期增加 ${money.format(entertainmentNow - entertainmentPrev)}，可以留意一下节奏。`
-  if (stats.usageRate < 65) return '本周期消费节奏健康，按现在的速度能比较安心撑到下次发薪。'
-  return `${top?.name || '日常'}是本周期主要支出，整体还在可控范围内。`
+  if (stats.fixedReserved > stats.income * 0.38) return '本周期固定流出偏高，已经提前预留，日常现金流可以轻一点。'
+  if (top?.id === 'food' && top.percent >= 0.34) return `餐饮流出占比 ${Math.round(top.percent * 100)}%，略高，稍微收一收就很好。`
+  if (entertainmentNow - entertainmentPrev > 500) return `娱乐和数码流出比上周期增加 ${money.format(entertainmentNow - entertainmentPrev)}，可以留意一下节奏。`
+  if (stats.usageRate < 65) return '本周期现金流节奏健康，按现在的速度能比较安心撑到下次发薪。'
+  return `${top?.name || '日常'}是本周期主要流出去向，整体还在可控范围内。`
 }
 
 function forecastForStats(stats) {
@@ -1063,7 +1132,7 @@ function forecastForStats(stats) {
   return {
     pace,
     projectedBalance,
-    text: stats.usageRate < 70 && projectedBalance >= 0 ? `${text} 本周期消费节奏健康。` : text,
+    text: stats.usageRate < 70 && projectedBalance >= 0 ? `${text} 本周期现金流节奏健康。` : text,
     status: projectedBalance < 0 ? '有超支风险' : stats.usageRate >= 85 ? '注意节奏' : '健康',
   }
 }
@@ -1076,7 +1145,7 @@ function cycleSummaryCopy(stats) {
   const optimized = categoryExpenseBreakdown(cycleItemsForBook())
     .filter((item) => ['food', 'shopping', 'digital', 'travel'].includes(item.id))
     .reduce((sum, item) => sum + item.amount, 0)
-  return `本周期${currentBook().id === 'family' ? '你们' : '你'}共收入 ${money.format(stats.income)}，工资和副业贡献清晰，支出 ${money.format(stats.expense)}，${fixedCopy}可优化支出 ${money.format(optimized)}，目前存下 ${money.format(saved)}。${deltaSaved >= 0 ? `比上周期多存 ${money.format(deltaSaved)}` : `比上周期少存 ${money.format(Math.abs(deltaSaved))}`}。${topCategories}是主要支出来源，整体是在慢慢变好的。`
+  return `本周期${currentBook().id === 'family' ? '你们' : '你'}共收入 ${money.format(stats.income)}，目标存款 ${money.format(stats.plan.savingTarget)}，流出 ${money.format(stats.expense)}，${fixedCopy}可优化流出 ${money.format(optimized)}，目前新增资产 ${money.format(saved)}。${deltaSaved >= 0 ? `比上周期多攒 ${money.format(deltaSaved)}` : `比上周期少攒 ${money.format(Math.abs(deltaSaved))}`}。${topCategories}是主要流出去向，整体是在慢慢变厚。`
 }
 
 function suggestedDailyAllowance(stats, bookId = state.activeBook) {
@@ -1193,6 +1262,7 @@ function renderApp() {
   renderDashboard()
   renderBills()
   renderReports()
+  renderGoals()
   renderProfile()
   renderAddSheet()
 }
@@ -1200,13 +1270,13 @@ function renderApp() {
 function renderBookSwitcher() {
   elements.bookSwitcher.innerHTML = ledgerSpaces
     .map((book) => {
-      const stats = cycleStatsForBook(book.id)
+      const assetStats = assetStatsForBook(book.id)
       const active = state.activeBook === book.id
       return `
         <button class="book-switch ${active ? 'is-active' : ''}" type="button" data-book="${book.id}">
           <span style="background:${book.color}">${book.shortName}</span>
           <strong>${book.name}</strong>
-          <em>还能花 ${money.format(stats.remaining)}</em>
+          <em>净资产 ${money.format(assetStats.net)}</em>
         </button>
       `
     })
@@ -1219,23 +1289,23 @@ function renderDashboard() {
   const assetStats = assetStatsForBook()
   const forecast = forecastForStats(stats)
   const insight = consumptionInsightForBook(state.activeBook, stats)
-  const foodSpent = expenseTransactions()
-    .filter((item) => item.categoryId === 'food')
-    .reduce((sum, item) => sum + item.amount, 0)
+  const netIncrease = stats.income - stats.expense
+  const dailyOutflow = Math.max(1, forecast.pace || stats.dailyAllowance || stats.basicDailyAllowance)
+  const runwayDays = Math.floor(assetStats.cash / dailyOutflow)
 
-  elements.heroContext.textContent = `本周期 ${stats.label} · ${book.name}`
-  elements.heroBalance.textContent = money.format(stats.remaining)
-  elements.monthExpense.textContent = money.format(stats.dailyAllowance)
-  elements.monthIncome.textContent = money.format(stats.todaySpent)
-  elements.budgetLeft.textContent = money.format(stats.todayRemaining)
-  elements.healthPill.textContent = `距发薪 ${stats.daysRemaining} 天`
-  elements.homeTotalAssets.textContent = money.format(stats.basicDailyAllowance)
-  elements.homeAssetDelta.textContent = `基础可花，建议值已考虑消费习惯`
-  elements.homeNetAssets.textContent = money.format(stats.fixedReserved)
-  elements.homeLiabilities.textContent = `固定实际已花 ${money.format(stats.fixedActual)}`
-  elements.homeCycleSurplus.textContent = money.format(stats.income - stats.expense)
+  elements.heroContext.textContent = `资产总览 · ${book.name}`
+  elements.heroBalance.textContent = money.format(assetStats.net)
+  elements.monthExpense.textContent = money.format(assetStats.cash)
+  elements.monthIncome.textContent = money.format(assetStats.investment)
+  elements.budgetLeft.textContent = money.format(assetStats.liabilities)
+  elements.healthPill.textContent = `现金可撑 ${runwayDays} 天`
+  elements.homeTotalAssets.textContent = money.format(assetStats.assets)
+  elements.homeAssetDelta.textContent = `账户 ${assetStats.accounts.length} 个 · 净资产 ${money.format(assetStats.net)}`
+  elements.homeNetAssets.textContent = money.format(stats.plan.savingTarget)
+  elements.homeLiabilities.textContent = `固定支出预留 ${money.format(stats.fixedReserved)}`
+  elements.homeCycleSurplus.textContent = money.format(netIncrease)
   elements.homeCycleIncome.textContent = `收入 ${money.format(stats.income)} · 副业 ${money.format(stats.sideIncome)}`
-  elements.homeBudgetStatus.textContent = stats.usageRate >= 100 ? '已超支' : stats.usageRate >= 90 ? '警告' : stats.usageRate >= 70 ? '提醒' : '健康'
+  elements.homeBudgetStatus.textContent = netIncrease >= stats.plan.savingTarget ? '按计划攒' : stats.usageRate >= 90 ? '收紧现金流' : '可继续攒'
   elements.homeBudget.textContent = money.format(stats.realBudget)
   elements.homeSpent.textContent = money.format(stats.variableExpense)
   elements.homeRemaining.textContent = money.format(stats.remaining)
@@ -1248,23 +1318,23 @@ function renderDashboard() {
   elements.sideIncomeAmount.textContent = money.format(stats.sideIncome)
   elements.sideIncomeGrowth.textContent = `${stats.sideGrowthRate >= 0 ? '+' : ''}${Math.round(stats.sideGrowthRate * 100)}%`
   elements.sideIncomeShare.textContent = `${Math.round(stats.sideRate * 100)}%`
-  elements.sideIncomeCoverage.textContent = `副业收入已覆盖 ${Math.round((stats.sideIncome / Math.max(1, stats.expense)) * 100)}% 的本周期生活成本。`
-  elements.homeAssetMixTag.textContent = '温和提醒'
-  elements.homeAssetMix.innerHTML = categoryExpenseBreakdown(cycleItemsForBook())
-    .slice(0, 3)
+  elements.sideIncomeCoverage.textContent = `副业收入已覆盖 ${Math.round((stats.sideIncome / Math.max(1, stats.expense)) * 100)}% 的本周期流出，可直接进入目标资金。`
+  elements.homeAssetMixTag.textContent = `净资产 ${money.format(assetStats.net)}`
+  elements.homeAssetMix.innerHTML = assetStats.mix
+    .filter((item) => item.value > 0)
     .map((item) => `
       <div class="asset-mix-row">
-        <span><i style="background:${item.color}"></i>${item.name}</span>
-        <div><b style="width:${Math.max(4, Math.round(item.percent * 100))}%; background:${item.color}"></b></div>
-        <strong>${money.format(item.amount)}</strong>
+        <span><i style="background:${item.color}"></i>${item.label}</span>
+        <div><b style="width:${Math.max(4, item.percent)}%; background:${item.color}"></b></div>
+        <strong>${money.format(item.value)}</strong>
       </div>
     `)
     .join('')
   elements.cycleSummaryTag.textContent = stats.progress >= 96 ? '本周期总结' : `进度 ${stats.progress}%`
   elements.cycleSummaryText.textContent = cycleSummaryCopy(stats)
 
-  elements.dailyInsight.textContent = stats.todayRemaining <= 0 ? '今天建议额度已用完' : `今天还可花 ${money.format(stats.todayRemaining)}`
-  elements.insightCopy.textContent = `${forecast.text} ${insight} 今天已花 ${money.format(stats.todaySpent)}，餐饮本周期 ${money.format(foodSpent)}。`
+  elements.dailyInsight.textContent = assetStats.net >= 0 ? `净资产 ${money.format(assetStats.net)}` : `负债缺口 ${money.format(Math.abs(assetStats.net))}`
+  elements.insightCopy.textContent = `可用现金 ${money.format(assetStats.cash)}，按当前日均流出可支撑 ${runwayDays} 天。${forecast.text} ${insight}`
 
   const activeTrend = trendValuesForBook()
   const maxTrend = Math.max(...activeTrend, 1)
@@ -1308,29 +1378,29 @@ function renderContextPanel() {
     elements.contextPanel.innerHTML = `
       <div class="section-title">
         <div>
-          <h3>收入驱动周期</h3>
-          <p>发薪日 ${stats.plan.payday} 号，本周期用收入减目标存款，算出真正可花的钱。</p>
+          <h3>个人攒钱周期</h3>
+          <p>发薪日 ${stats.plan.payday} 号先锁定目标存款，再用现金流护栏管理日常流水。</p>
         </div>
         <span class="soft-tag">副业占比 ${Math.round(stats.sideRate * 100)}%</span>
       </div>
       <div class="space-grid">
         <div class="space-tile"><span>本周期收入</span><strong>${money.format(stats.income)}</strong><em>工资 ${money.format(stats.plan.salary)} · 副业 ${money.format(stats.sideIncome)}</em></div>
-        <div class="space-tile"><span>固定支出预留</span><strong>${money.format(stats.fixedReserved)}</strong><em>真实可花 = 收入 - 固定 - 存款</em></div>
+        <div class="space-tile"><span>目标存款</span><strong>${money.format(stats.plan.savingTarget)}</strong><em>先攒下，再决定能花多少</em></div>
         <div class="space-tile"><span>个人净资产</span><strong>${money.format(net)}</strong><em>现金、银行卡、信用卡、花呗、投资</em></div>
         <div class="space-tile"><span>待报销 / 退款</span><strong>${money.format(reimbursement)}</strong><em>报销、退款、借入借出、分期预留</em></div>
       </div>
       <div class="cycle-progress">
-        <header><span>预算进度</span><strong>${stats.usageRate}%</strong></header>
+        <header><span>现金流使用</span><strong>${stats.usageRate}%</strong></header>
         <div class="progress-track"><div class="progress-fill" style="width:${stats.usageRate}%"></div></div>
-        <p>可变支出 ${money.format(stats.variableExpense)}，真实剩余 ${money.format(stats.remaining)}，今天建议可花 ${money.format(stats.dailyAllowance)}。</p>
+        <p>日常流出 ${money.format(stats.variableExpense)}，现金池剩余 ${money.format(stats.remaining)}，今天建议上限 ${money.format(stats.dailyAllowance)}。</p>
       </div>
       <div class="capability-row">
-        ${['工资自动入账', '副业记录', '截图 OCR', '剪贴板识别', '长按快捷入口'].map((item) => `<span>${item}</span>`).join('')}
+        ${['账户资产', '目标存款', '副业记录', '截图识别', '快捷补流水'].map((item) => `<span>${item}</span>`).join('')}
       </div>
       <div class="spend-layer">
         <span>固定支出：房租 / 通勤 / 订阅</span>
-        <span>生活支出：餐饮 / 日用 / 购物</span>
-        <span>可优化：外卖 / 冲动消费 / 娱乐过度</span>
+        <span>日常流水：餐饮 / 日用 / 购物</span>
+        <span>可优化：外卖 / 冲动购物 / 娱乐过度</span>
       </div>
     `
     return
@@ -1349,21 +1419,21 @@ function renderContextPanel() {
   elements.contextPanel.innerHTML = `
     <div class="section-title">
       <div>
-        <h3>共同目标周期</h3>
-        <p>两个人一起看收入、支出、还能花多少；每一笔都能标记谁记、谁垫付。</p>
+        <h3>共同攒钱周期</h3>
+        <p>两个人一起看净资产、共同账户、目标资金和现金流；流水只是辅助校准。</p>
       </div>
       <span class="soft-tag">存钱率 ${Math.round(stats.savingRate * 100)}%</span>
     </div>
     <div class="space-grid">
       <div class="space-tile"><span>共同收入</span><strong>${money.format(stats.income)}</strong><em>工资 ${money.format(stats.plan.salary)} · 副业 ${money.format(stats.sideIncome)}</em></div>
-      <div class="space-tile"><span>真实可花</span><strong>${money.format(stats.realBudget)}</strong><em>固定支出 ${money.format(stats.fixedReserved)} · 目标存款 ${money.format(stats.plan.savingTarget)}</em></div>
+      <div class="space-tile"><span>目标存款</span><strong>${money.format(stats.plan.savingTarget)}</strong><em>固定支出 ${money.format(stats.fixedReserved)} · 日常现金池 ${money.format(stats.realBudget)}</em></div>
       <div class="space-tile"><span>共同净资产</span><strong>${money.format(net)}</strong><em>家庭现金、银行卡、基金、装修、旅行账户</em></div>
       <div class="space-tile"><span>我垫付待结算</span><strong>${money.format(advance)}</strong><em>标记 is_advance 后生成内部结算</em></div>
     </div>
     <div class="cycle-progress">
       <header><span>撑到下次发薪</span><strong>${stats.daysRemaining} 天</strong></header>
       <div class="progress-track"><div class="progress-fill" style="width:${stats.usageRate}%"></div></div>
-      <p>可变支出 ${money.format(stats.variableExpense)} / 真实可花 ${money.format(stats.realBudget)}，今天建议可花 ${money.format(stats.dailyAllowance)}。</p>
+      <p>日常流出 ${money.format(stats.variableExpense)} / 现金池 ${money.format(stats.realBudget)}，今天建议上限 ${money.format(stats.dailyAllowance)}。</p>
     </div>
     <div class="member-meter">
       ${members.map((item) => `
@@ -1375,14 +1445,14 @@ function renderContextPanel() {
       `).join('')}
     </div>
     <div class="permission-row">
-      <span>管理员：管理成员、共同账户、预算、分类</span>
-      <span>成员：记账、查看统计</span>
+      <span>管理员：管理成员、共同账户、计划、分类</span>
+      <span>成员：补流水、查看统计</span>
       <span>只读：仅查看</span>
     </div>
     <div class="spend-layer">
       <span>固定支出：房租 / 房贷 / 水电</span>
-      <span>生活支出：餐饮 / 日用 / 育儿</span>
-      <span>可优化：外卖 / 冲动消费 / 娱乐过度</span>
+      <span>日常流水：餐饮 / 日用 / 育儿</span>
+      <span>可优化：外卖 / 冲动购物 / 娱乐过度</span>
     </div>
   `
 }
@@ -1440,12 +1510,12 @@ function renderBills() {
       const dayExpense = items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)
       return `
         <section class="ledger-group">
-          <h3><span>${formatDate(date)}</span><span>支出 ${money.format(dayExpense)}</span></h3>
+          <h3><span>${formatDate(date)}</span><span>流出 ${money.format(dayExpense)}</span></h3>
           <div class="compact-list">${items.map((item) => billRow(item, true)).join('')}</div>
         </section>
       `
     })
-    .join('') || emptyState('没有找到匹配账单', '换个关键词或筛选条件试试。')
+    .join('') || emptyState('没有找到匹配流水', '换个关键词或筛选条件试试。')
 }
 
 function renderReports() {
@@ -1508,6 +1578,48 @@ function renderReports() {
   renderBarChart()
 }
 
+function renderGoals() {
+  const stats = cycleStatsForBook()
+  const goalStats = goalStatsForBook()
+  const goals = goalStats.goals
+  const totalRemaining = Math.max(1, goalStats.remaining)
+  elements.goalProgressAmount.textContent = `${goalStats.percent}%`
+  elements.goalProgressMeta.textContent = `${money.format(goalStats.current)} / ${money.format(goalStats.target)} · 剩余 ${money.format(goalStats.remaining)}`
+  elements.goalCountTag.textContent = `${goals.length} 个目标`
+  elements.goalSavingTag.textContent = money.format(stats.plan.savingTarget)
+  elements.goalAdvice.textContent = goalStats.remaining
+    ? `本周期目标存款 ${money.format(stats.plan.savingTarget)}，按目标缺口自动建议分配。`
+    : '当前资产池目标已经全部达成，可以新增更长期目标。'
+
+  elements.goalGrid.innerHTML = goals
+    .map((goal) => `
+      <button class="goal-card" type="button" data-goal-account="${escapeHtml(goal.primaryAccountId)}">
+        <span class="goal-icon">${iconSvg(goal.icon)}</span>
+        <div class="goal-main">
+          <strong>${escapeHtml(goal.title)}</strong>
+          <em>${money.format(goal.current)} / ${money.format(goal.target)} · ${goal.due}</em>
+          <div class="goal-progress"><i style="width:${goal.percent}%"></i></div>
+        </div>
+        <b>${goal.percent}%</b>
+      </button>
+    `)
+    .join('')
+
+  elements.goalAllocation.innerHTML = goals
+    .filter((goal) => goal.remaining > 0)
+    .map((goal) => {
+      const amount = Math.round(stats.plan.savingTarget * (goal.remaining / totalRemaining))
+      return `
+        <div class="allocation-row">
+          <span>${escapeHtml(goal.title)}</span>
+          <strong>${money.format(amount)}</strong>
+          <em>还差 ${money.format(goal.remaining)}</em>
+        </div>
+      `
+    })
+    .join('') || '<div class="allocation-row"><span>目标已达成</span><strong>继续新增</strong><em>当前目标资金都已经满额，可以把本周期目标存款转入新的长期目标。</em></div>'
+}
+
 function renderLineChart() {
   const width = 340
   const height = 150
@@ -1533,7 +1645,7 @@ function renderLineChart() {
     <path d="${d}" fill="none" stroke="#ebc08a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
     ${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.5" fill="#0b1214" stroke="#ebc08a" stroke-width="3"></circle>`).join('')}
   `
-  elements.trendNote.textContent = `近 7 天最高单日 ${money.format(max)}，最低 ${money.format(min)}，整体仍在预算安全区。`
+  elements.trendNote.textContent = `近 7 天最高单日流出 ${money.format(max)}，最低 ${money.format(min)}，整体仍在现金流护栏内。`
 }
 
 function renderBarChart() {
@@ -1572,7 +1684,7 @@ function renderProfile() {
 
   const totalBudget = categories.reduce((sum, item) => sum + item.budget, 0)
   const totalExpense = expenseTransactions().reduce((sum, item) => sum + item.amount, 0)
-  elements.budgetAdvice.textContent = stats.usageRate >= 90 ? '预算警告' : stats.usageRate >= 70 ? '提醒' : '健康'
+  elements.budgetAdvice.textContent = stats.usageRate >= 90 ? '收紧' : stats.usageRate >= 70 ? '提醒' : '可攒'
   elements.budgetList.innerHTML = categories
     .filter((item) => item.type === 'expense')
     .map((category) => {
@@ -1605,14 +1717,14 @@ function renderProfile() {
     <button class="book-card salary-card" type="button" data-manage-budget>
       <span class="book-icon">${iconSvg('briefcase')}</span>
       <div>
-        <strong>发薪日 ${stats.plan.payday} 号 · 自动入账</strong>
-        <span>工资 ${money.format(stats.plan.salary)} · 点击设置工资周期</span>
+        <strong>发薪日 ${stats.plan.payday} 号 · 自动入资产池</strong>
+        <span>工资 ${money.format(stats.plan.salary)} · 点击设置攒钱周期</span>
       </div>
     </button>
     <button class="book-card salary-card" type="button" data-manage-budget>
       <span class="book-icon">${iconSvg('goal')}</span>
       <div>
-        <strong>副业收入 ${money.format(stats.sideIncome)}</strong>
+        <strong>副业增长 ${money.format(stats.sideIncome)}</strong>
         <span>${stats.plan.sideNames.join(' / ')} · 点击设置副业目标 ${money.format(stats.plan.sideTarget)}</span>
       </div>
     </button>
@@ -1630,7 +1742,7 @@ function renderProfile() {
         </button>
       `
     })
-    .join('') || emptyState('暂无周期账单', `${book.name} 还没有设置周期账单。`)
+    .join('') || emptyState('暂无周期流水', `${book.name} 还没有设置周期流水。`)
 
   renderShortcutCenter()
 }
@@ -1703,10 +1815,10 @@ function billRow(item, withActions) {
   const account = accountById(item.accountId)
   const amountClass = item.type === 'income' ? 'income' : item.type === 'expense' ? 'expense' : ''
   const sign = item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''
-  const bookName = item.bookId === 'personal' ? '个人账本' : '家庭账本'
+  const bookName = item.bookId === 'personal' ? '我的资产池' : '共同资产池'
   const beneficiary = item.beneficiary ? ` · 受益人 ${item.beneficiary}` : ''
   const quickAction = item.bookId === 'personal'
-    ? `<button type="button" data-to-family="${item.id}" title="复制到家庭账本">家</button>`
+    ? `<button type="button" data-to-family="${item.id}" title="复制到共同资产池">共</button>`
     : `<button type="button" data-advance="${item.id}" title="标记我垫付">垫</button>`
   return `
     <article class="bill-row">
@@ -1833,7 +1945,7 @@ function openBudgetManager(focusCategoryId = '') {
       </label>
     `)
     .join('')
-  openManager('工资周期与预算', currentBook().name, `
+  openManager('攒钱周期与现金流', currentBook().name, `
     <form class="manager-form" data-budget-form>
       <div class="form-grid">
         <label>发薪日<input name="payday" inputmode="numeric" value="${plan.payday}" /></label>
@@ -1844,11 +1956,11 @@ function openBudgetManager(focusCategoryId = '') {
         <label>目标存款<input name="savingTarget" inputmode="decimal" value="${plan.savingTarget}" /></label>
       </div>
       <label>副业来源<input name="sideNames" value="${escapeHtml(plan.sideNames.join(' / '))}" placeholder="小红书 / 接私活" /></label>
-      <div class="manager-subtitle">分类预算</div>
+      <div class="manager-subtitle">日常分类护栏</div>
       <div class="form-grid">${rows}</div>
       <div class="manager-actions">
-        <span>预算 = 收入 - 目标存款</span>
-        <button type="submit" class="primary-button">保存预算</button>
+        <span>现金池 = 收入 - 固定支出 - 目标存款</span>
+        <button type="submit" class="primary-button">保存计划</button>
       </div>
     </form>
   `)
@@ -1864,7 +1976,7 @@ function openLedgerManager() {
       </button>
     `)
     .join('')
-  openManager('共享账本', book.name, `
+  openManager('共同资产池', book.name, `
     <div class="manager-copy">
       <strong>${book.name}</strong>
       <span>${book.description}</span>
@@ -1894,8 +2006,8 @@ function openRecurringManager(recurringId = '') {
     .filter((bill) => bill.bookId === state.activeBook)
     .map((bill) => `<button class="manager-row" type="button" data-edit-recurring="${bill.id}"><span>${iconSvg(categoryIconId(bill.categoryId))}</span><div><strong>${bill.title}</strong><em>${bill.cycle} · ${money.format(bill.amount)}</em></div></button>`)
     .join('')
-  openManager('周期账单', currentBook().name, `
-    <div class="manager-list">${list || '<div class="manager-copy"><span>当前账本还没有周期账单。</span></div>'}</div>
+  openManager('周期流水', currentBook().name, `
+    <div class="manager-list">${list || '<div class="manager-copy"><span>当前资产池还没有周期流水。</span></div>'}</div>
     <form class="manager-form" data-recurring-form>
       <input type="hidden" name="id" value="${escapeHtml(item.id)}" />
       <label>名称<input name="title" value="${escapeHtml(item.title)}" placeholder="例如：房租 / 工资 / 会员" required /></label>
@@ -1910,8 +2022,8 @@ function openRecurringManager(recurringId = '') {
         <label>下次日期<input name="next" type="date" value="${item.next}" /></label>
       </div>
       <div class="manager-actions">
-        ${item.id ? '<button type="button" class="danger-button" data-delete-recurring>删除周期账单</button>' : '<span></span>'}
-        <button type="submit" class="primary-button">${item.id ? '保存周期账单' : '新增周期账单'}</button>
+        ${item.id ? '<button type="button" class="danger-button" data-delete-recurring>删除周期流水</button>' : '<span></span>'}
+        <button type="submit" class="primary-button">${item.id ? '保存周期流水' : '新增周期流水'}</button>
       </div>
     </form>
   `)
@@ -1931,7 +2043,7 @@ function openSettingPanel(setting) {
       <button class="primary-button full-button" type="button" data-toggle-private>切换隐私模式</button>
     `,
     export: `
-      <div class="manager-copy"><strong>导入 / 导出数据</strong><span>可备份当前浏览器里的账单、账户、周期账单和预算配置，也可以粘贴 JSON 恢复。</span></div>
+      <div class="manager-copy"><strong>导入 / 导出数据</strong><span>可备份当前浏览器里的流水、账户、周期流水和攒钱计划，也可以粘贴 JSON 恢复。</span></div>
       <textarea class="export-box">${escapeHtml(payload)}</textarea>
       <div class="manager-actions">
         <button type="button" data-import-export>导入文本</button>
@@ -1943,10 +2055,10 @@ function openSettingPanel(setting) {
       <button class="primary-button full-button" type="button" data-toggle-private>隐藏 / 显示金额</button>
     `,
     sync: `
-      <div class="manager-copy"><strong>云同步准备就绪</strong><span>当前免费版已把数据模型整理好。接 Supabase 后可实现你和老婆实时共用同一个家庭账本。</span></div>
+      <div class="manager-copy"><strong>云同步准备就绪</strong><span>当前免费版已把数据模型整理好。接 Supabase 后可实现你和老婆实时共用同一个资产池。</span></div>
       <div class="manager-list">
         <div class="manager-row"><span>${iconSvg('shield')}</span><div><strong>需要 Supabase URL</strong><em>项目地址与匿名 key</em></div></div>
-        <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>家庭空间表</strong><em>books / members / transactions / accounts</em></div></div>
+        <div class="manager-row"><span>${iconSvg('home')}</span><div><strong>共同资产表</strong><em>spaces / members / transactions / accounts / goals</em></div></div>
       </div>
     `,
   }
@@ -1966,14 +2078,14 @@ function openAuthManager() {
       : user.provider === 'mock'
         ? '体验账号'
         : '本机账号'
-  openManager('账号与家庭', user.name, `
+  openManager('账号与共同资产', user.name, `
     <div class="manager-copy">
       <strong>${escapeHtml(user.name)}</strong>
-      <span>${escapeHtml(providerLabel)} · ${user.role === 'admin' ? '家庭管理员' : '家庭成员'}</span>
+      <span>${escapeHtml(providerLabel)} · ${user.role === 'admin' ? '共同资产管理员' : '共同成员'}</span>
     </div>
     <form class="manager-form" data-profile-form>
       <label>昵称<input name="name" value="${escapeHtml(user.name)}" required /></label>
-      <label>家庭邀请码<input name="householdId" value="${escapeHtml(user.householdId || defaultHouseholdId)}" placeholder="例如 FAMILY-520" /></label>
+      <label>共同资产邀请码<input name="householdId" value="${escapeHtml(user.householdId || defaultHouseholdId)}" placeholder="例如 FAMILY-520" /></label>
       <div class="manager-actions">
         <button type="button" class="danger-button" data-logout>退出登录</button>
         <button type="submit" class="primary-button">保存账号</button>
@@ -1986,7 +2098,7 @@ function openAuthManager() {
       </button>
       <button class="manager-row" type="button" data-copy-family-link>
         <span>${iconSvg('home')}</span>
-        <div><strong>复制家庭邀请链接</strong><em>${escapeHtml(user.householdId || defaultHouseholdId)}</em></div>
+        <div><strong>复制共同资产邀请链接</strong><em>${escapeHtml(user.householdId || defaultHouseholdId)}</em></div>
       </button>
       <button class="manager-row" type="button" data-open-apple-config>
         <span></span>
@@ -2020,7 +2132,7 @@ function openAppleConfigManager() {
       </div>
       <div class="manager-row">
         <span>${iconSvg('home')}</span>
-        <div><strong>家庭账本身份</strong><em>Apple 登录后仍会绑定家庭邀请码，每笔账会保留成员与 userId。</em></div>
+        <div><strong>共同资产身份</strong><em>Apple 登录后仍会绑定共同邀请码，每笔流水会保留成员与 userId。</em></div>
       </div>
     </div>
   `)
@@ -2103,7 +2215,7 @@ function addTransactionFromSheet() {
     state.pendingMember || user.name,
     elements.dateInput.value || todayValue(),
     note,
-    tags.length ? tags : ['手动记账'],
+    tags.length ? tags : ['手动流水'],
   )
   nextTransaction.bookId = state.pendingBook
   nextTransaction.userId = user.id
@@ -2174,7 +2286,7 @@ function applyShortcutParams(params, shouldAutoSave = false) {
       bookId: params.get('book') || 'family',
       categoryId: inferCategory(`${params.get('merchant') || ''} ${params.get('text') || ''}`),
       accountId: params.get('account') || 'wechat',
-      note: `${params.get('merchant') || '截图识别账单'} · OCR 置信度 ${params.get('confidence') || '待确认'}`,
+      note: `${params.get('merchant') || '截图识别流水'} · OCR 置信度 ${params.get('confidence') || '待确认'}`,
       tags: '截图 识别',
       member: params.get('member') || '我',
     })
@@ -2432,11 +2544,13 @@ elements.closeSheet.addEventListener('click', closeSheet)
 elements.sheetBackdrop.addEventListener('click', () => {
   closeSheet()
   closeManager()
-  if (currentUser()) closeAuthPanel()
+  if (!elements.authPanel.hidden) closeAuthPanel()
 })
 elements.saveEntry.addEventListener('click', addTransactionFromSheet)
 
 elements.manageAccounts.addEventListener('click', () => openAccountManager())
+elements.manageAssetAccounts.addEventListener('click', () => openAccountManager())
+elements.manageGoals.addEventListener('click', () => openBudgetManager())
 elements.manageRecurring.addEventListener('click', () => openRecurringManager())
 elements.budgetAdvice.addEventListener('click', () => openBudgetManager())
 elements.closeManager.addEventListener('click', closeManager)
@@ -2449,6 +2563,11 @@ elements.accountList.addEventListener('click', (event) => {
 elements.assetAccountList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-account]')
   if (button) openAccountManager(button.dataset.account)
+})
+
+elements.goalGrid.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-goal-account]')
+  if (button?.dataset.goalAccount) openAccountManager(button.dataset.goalAccount)
 })
 
 elements.budgetList.addEventListener('click', (event) => {
@@ -2678,7 +2797,7 @@ elements.managerBody.addEventListener('submit', (event) => {
     const next = {
       id,
       bookId: state.activeBook,
-      title: String(form.get('title') || '').trim() || '周期账单',
+      title: String(form.get('title') || '').trim() || '周期流水',
       categoryId: form.get('categoryId') || 'home',
       amount: Number(form.get('amount')) || 0,
       cycle: String(form.get('cycle') || '').trim() || '每月 1 日',
@@ -2719,6 +2838,6 @@ qs('#copyInvite').addEventListener('click', async () => {
 })
 
 elements.dateInput.value = todayValue()
+ensureLocalExperienceSession()
 renderApp()
 applyShortcutParams(new URLSearchParams(window.location.search))
-if (!currentUser()) openAuthPanel(users.length ? 'login' : 'register')

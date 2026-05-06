@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#061116" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="一起记" />
-    <title>一起记 · Couple Ledger</title>
+    <meta name="apple-mobile-web-app-title" content="一起攒" />
+    <title>一起攒 · Couple Wealth</title>
     <link rel="icon" type="image/png" href="./public/logo.png" />
     <link rel="apple-touch-icon" href="./public/logo.png" />
     <link rel="stylesheet" href="./src/static.css" />
@@ -15,10 +15,10 @@
     <div class="app-shell">
       <header class="app-header">
         <div class="brand-lockup">
-          <img class="orb-logo" src="./public/logo.png" alt="一起记" />
+          <img class="orb-logo" src="./public/logo.png" alt="一起攒" />
           <div>
-            <p class="eyebrow">Couple Ledger</p>
-            <h1>一起记</h1>
+            <p class="eyebrow">Couple Wealth</p>
+            <h1>一起攒</h1>
           </div>
         </div>
         <div class="header-actions">
@@ -34,55 +34,63 @@
           </button>
         </div>
       </header>
-      <div class="book-switcher" id="bookSwitcher" aria-label="账本空间切换"></div>
+      <div class="book-switcher" id="bookSwitcher" aria-label="资产池切换"></div>
 
       <main class="screen-stack">
-        <section class="screen is-active" id="screen-home" data-screen="home" aria-label="首页">
+        <section class="screen is-active" id="screen-home" data-screen="home" aria-label="总览">
           <div class="hero-card">
             <div class="hero-top">
               <div>
-                <p id="heroContext">2026 年 5 月 · 家庭账本</p>
+                <p id="heroContext">资产总览 · 共同资产池</p>
                 <h2 id="heroBalance">¥0</h2>
               </div>
-              <span class="health-pill" id="healthPill">距发薪 0 天</span>
+              <span class="health-pill" id="healthPill">可支撑 0 天</span>
             </div>
             <div class="hero-metrics">
               <div>
-                <span>今天建议可花</span>
+                <span>可用现金</span>
                 <strong id="monthExpense">¥0</strong>
               </div>
               <div>
-                <span>今天已花</span>
+                <span>目标 / 投资</span>
                 <strong id="monthIncome">¥0</strong>
               </div>
               <div>
-                <span>今日剩余</span>
+                <span>负债余额</span>
                 <strong id="budgetLeft">¥0</strong>
               </div>
             </div>
-            <div class="mini-trend" id="heroTrend" aria-label="消费趋势"></div>
+            <div class="mini-trend" id="heroTrend" aria-label="现金流趋势"></div>
           </div>
 
-          <div class="range-control" aria-label="时间视角">
-            <button class="is-active" type="button" data-range="day">日</button>
-            <button type="button" data-range="week">周</button>
-            <button type="button" data-range="month">月</button>
-            <button type="button" data-range="year">年</button>
+          <div class="wealth-actions" aria-label="核心操作">
+            <button type="button" data-switch-screen="reports">
+              <span>账户</span>
+              <strong>管理资产</strong>
+            </button>
+            <button type="button" data-switch-screen="goals">
+              <span>目标</span>
+              <strong>攒钱进度</strong>
+            </button>
+            <button type="button" data-open-add>
+              <span>流水</span>
+              <strong>快速补一笔</strong>
+            </button>
           </div>
 
-          <section class="cycle-cockpit" aria-label="工资周期总览">
+          <section class="cycle-cockpit" aria-label="资产驾驶舱">
             <div class="cockpit-card">
-              <span>基础可花 / 天</span>
+              <span>总资产</span>
               <strong id="homeTotalAssets">¥0</strong>
-              <em id="homeAssetDelta">剩余金额 ÷ 剩余天数</em>
+              <em id="homeAssetDelta">现金、账户、基金和目标资金</em>
             </div>
             <div class="cockpit-card">
-              <span>固定支出已预留</span>
+              <span>目标存款</span>
               <strong id="homeNetAssets">¥0</strong>
-              <em id="homeLiabilities">房租、通勤、订阅等</em>
+              <em id="homeLiabilities">本周期自动预留</em>
             </div>
             <div class="cockpit-card">
-              <span>本周期结余</span>
+              <span>本周期新增</span>
               <strong id="homeCycleSurplus">¥0</strong>
               <em id="homeCycleIncome">收入 ¥0</em>
             </div>
@@ -91,51 +99,51 @@
           <section class="insight-card">
             <div class="insight-icon">i</div>
             <div>
-              <h3 id="dailyInsight">今日消费状态良好</h3>
-              <p id="insightCopy">系统正在分析你的消费节奏。</p>
+              <h3 id="dailyInsight">资产状态正在计算</h3>
+              <p id="insightCopy">系统正在分析你们的钱放在哪里、还能撑多久。</p>
             </div>
           </section>
 
-          <section class="panel budget-command" aria-label="预算决策">
+          <section class="panel budget-command" aria-label="攒钱计划">
             <div class="section-title">
               <div>
-                <h3>预算控制</h3>
-                <p>真实可花 = 收入 - 固定支出 - 目标存款。</p>
+                <h3>攒钱计划</h3>
+                <p>收入先进入目标，再给日常开销留现金流护栏。</p>
               </div>
               <span class="soft-tag" id="homeBudgetStatus">健康</span>
             </div>
             <div class="budget-command-main">
               <div>
-                <span>真实可花</span>
+                <span>日常现金池</span>
                 <strong id="homeBudget">¥0</strong>
               </div>
               <div>
-                <span>已花</span>
+                <span>已流出</span>
                 <strong id="homeSpent">¥0</strong>
               </div>
               <div>
-                <span>剩余</span>
+                <span>仍可用</span>
                 <strong id="homeRemaining">¥0</strong>
               </div>
             </div>
             <div class="progress-track"><div class="progress-fill" id="homeBudgetProgress" style="width:0%"></div></div>
           </section>
 
-          <section class="panel cashflow-forecast" aria-label="发薪预测">
+          <section class="panel cashflow-forecast" aria-label="现金流预测">
             <div class="section-title">
-              <h3>发薪预测</h3>
+              <h3>现金流预测</h3>
               <span class="soft-tag" id="paydayForecastTag">健康</span>
             </div>
-            <p id="paydayForecastText">系统正在计算当前消费速度。</p>
+            <p id="paydayForecastText">系统正在计算当前现金流速度。</p>
             <div class="forecast-grid">
-              <div><span>当前速度</span><strong id="spendPace">¥0/天</strong></div>
-              <div><span>预计到发薪</span><strong id="projectedBalance">¥0</strong></div>
+              <div><span>日均流出</span><strong id="spendPace">¥0/天</strong></div>
+              <div><span>发薪前余额</span><strong id="projectedBalance">¥0</strong></div>
             </div>
           </section>
 
           <section class="panel side-hustle-panel" aria-label="副业收入成长">
             <div class="section-title">
-              <h3>副业成长</h3>
+              <h3>增长动力</h3>
               <span class="soft-tag" id="sideGrowthTag">本周期</span>
             </div>
             <div class="side-hustle-grid">
@@ -143,53 +151,53 @@
               <div><span>较上周期</span><strong id="sideIncomeGrowth">0%</strong></div>
               <div><span>收入占比</span><strong id="sideIncomeShare">0%</strong></div>
             </div>
-            <p id="sideIncomeCoverage">副业收入正在积累。</p>
+            <p id="sideIncomeCoverage">副业收入正在进入共同资产池。</p>
           </section>
 
-          <section class="panel asset-distribution" aria-label="消费结构提示">
+          <section class="panel asset-distribution" aria-label="资产结构">
             <div class="section-title">
-              <h3>消费结构提示</h3>
-              <span class="soft-tag" id="homeAssetMixTag">温和提醒</span>
+              <h3>资产结构</h3>
+              <span class="soft-tag" id="homeAssetMixTag">净资产</span>
             </div>
             <div class="asset-mix" id="homeAssetMix"></div>
           </section>
 
-          <section class="panel cycle-summary" aria-label="工资周期总结">
+          <section class="panel cycle-summary" aria-label="攒钱周期总结">
             <div class="section-title">
-              <h3>周期总结</h3>
+              <h3>攒钱周期</h3>
               <span class="soft-tag" id="cycleSummaryTag">自动生成</span>
             </div>
             <p id="cycleSummaryText">这个周期正在进行中。</p>
           </section>
 
-          <section class="context-panel panel" id="contextPanel" aria-label="账本空间能力"></section>
+          <section class="context-panel panel" id="contextPanel" aria-label="资产池能力"></section>
 
           <section class="quick-templates">
             <div class="section-title">
-              <h3>3 秒记一笔</h3>
+              <h3>快速补流水</h3>
               <button type="button" class="text-button" data-open-add>自定义</button>
             </div>
             <label class="quick-input">
               <span>快捷输入</span>
               <input id="quickTextInput" placeholder="咖啡 20 / 打车 18 / 午饭 35" />
-              <button type="button" id="quickTextSave">记一笔</button>
+              <button type="button" id="quickTextSave">补流水</button>
             </label>
             <div class="template-row" id="templateRow"></div>
           </section>
 
           <section class="panel">
             <div class="section-title">
-              <h3>最近账单</h3>
+              <h3>最近流水</h3>
               <button type="button" class="text-button" data-switch-screen="bills">查看全部</button>
             </div>
             <div class="compact-list" id="recentList"></div>
           </section>
         </section>
 
-        <section class="screen" id="screen-bills" data-screen="bills" aria-label="账单">
+        <section class="screen" id="screen-bills" data-screen="bills" aria-label="流水">
           <div class="page-heading">
-            <p class="eyebrow">Ledger</p>
-            <h2>账单</h2>
+            <p class="eyebrow">Cashflow</p>
+            <h2>流水</h2>
           </div>
           <div class="search-card">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -204,7 +212,7 @@
 
         <section class="screen" id="screen-reports" data-screen="reports" aria-label="资产">
           <div class="page-heading">
-            <p class="eyebrow">Assets</p>
+            <p class="eyebrow">Assets First</p>
             <h2>资产</h2>
           </div>
           <section class="asset-hero panel">
@@ -218,15 +226,18 @@
           <section class="panel">
             <div class="section-title">
               <h3>账户</h3>
-              <span class="soft-tag" id="assetAccountCount">0 个账户</span>
+              <div class="section-actions">
+                <span class="soft-tag" id="assetAccountCount">0 个账户</span>
+                <button class="text-button" type="button" id="manageAssetAccounts">管理</button>
+              </div>
             </div>
             <div class="account-list" id="assetAccountList"></div>
           </section>
           <div class="report-grid">
             <section class="panel report-panel">
               <div class="section-title">
-                <h3>支出结构</h3>
-                <span class="soft-tag">工资周期</span>
+                <h3>现金流结构</h3>
+                <span class="soft-tag">本周期</span>
               </div>
               <div class="donut-wrap">
                 <div class="donut-chart" id="donutChart"></div>
@@ -240,16 +251,16 @@
 
             <section class="panel report-panel">
               <div class="section-title">
-                <h3>周期趋势</h3>
+                <h3>流出趋势</h3>
                 <span class="soft-tag">近 7 天</span>
               </div>
-              <svg class="line-chart" id="lineChart" viewBox="0 0 340 150" role="img" aria-label="消费趋势折线图"></svg>
-              <p class="chart-note" id="trendNote">本周消费节奏稳定。</p>
+              <svg class="line-chart" id="lineChart" viewBox="0 0 340 150" role="img" aria-label="现金流趋势折线图"></svg>
+              <p class="chart-note" id="trendNote">本周现金流节奏稳定。</p>
             </section>
 
             <section class="panel report-panel">
               <div class="section-title">
-                <h3>月度支出</h3>
+                <h3>月度流出</h3>
                 <span class="soft-tag">同比 / 环比</span>
               </div>
               <div class="bar-chart" id="barChart"></div>
@@ -257,10 +268,45 @@
           </div>
         </section>
 
+        <section class="screen" id="screen-goals" data-screen="goals" aria-label="目标">
+          <div class="page-heading">
+            <p class="eyebrow">Goals</p>
+            <h2>目标</h2>
+          </div>
+          <section class="goal-hero panel">
+            <div>
+              <span>总目标进度</span>
+              <strong id="goalProgressAmount">0%</strong>
+              <em id="goalProgressMeta">目标资金正在计算。</em>
+            </div>
+            <button class="text-button" type="button" id="manageGoals">调整计划</button>
+          </section>
+          <section class="panel">
+            <div class="section-title">
+              <div>
+                <h3>攒钱目标</h3>
+                <p>目标由账户余额驱动，不需要重复手动维护。</p>
+              </div>
+              <span class="soft-tag" id="goalCountTag">0 个目标</span>
+            </div>
+            <div class="goal-grid" id="goalGrid"></div>
+          </section>
+          <section class="panel goal-allocation">
+            <div class="section-title">
+              <div>
+                <h3>本周期分配</h3>
+                <p id="goalAdvice">系统正在按缺口分配目标存款。</p>
+              </div>
+              <span class="soft-tag" id="goalSavingTag">¥0</span>
+            </div>
+            <div class="allocation-list" id="goalAllocation"></div>
+          </section>
+        </section>
+
         <section class="screen" id="screen-profile" data-screen="profile" aria-label="我的">
           <div class="page-heading">
-            <p class="eyebrow">Salary & Settings</p>
-            <h2>工资与我的</h2>
+            <p class="eyebrow">Account & Settings</p>
+            <h2>我的</h2>
           </div>
 
           <section class="panel profile-card">
@@ -274,7 +320,7 @@
           </section>
 
           <section class="networth-card">
-            <p>总资产 / 净资产</p>
+            <p>净资产</p>
             <strong id="netWorth">¥0</strong>
             <span id="assetSummary">资产 ¥0 · 负债 ¥0</span>
           </section>
@@ -289,7 +335,7 @@
 
           <section class="panel">
             <div class="section-title">
-              <h3>预算管理</h3>
+              <h3>攒钱计划</h3>
               <button class="soft-tag" id="budgetAdvice" type="button">建议</button>
             </div>
             <div class="budget-list" id="budgetList"></div>
@@ -297,7 +343,7 @@
 
           <section class="panel">
             <div class="section-title">
-              <h3>共享账本</h3>
+              <h3>共同资产池</h3>
               <button class="text-button" type="button" id="copyInvite">邀请</button>
             </div>
             <div class="book-grid" id="bookGrid"></div>
@@ -305,7 +351,7 @@
 
           <section class="panel">
             <div class="section-title">
-              <h3>周期账单</h3>
+              <h3>周期流水</h3>
               <button class="soft-tag" id="manageRecurring" type="button">自动生成</button>
             </div>
             <div class="recurring-list" id="recurringList"></div>
@@ -332,32 +378,37 @@
       <nav class="tab-bar" aria-label="主导航">
         <button type="button" class="is-active" data-tab="home">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" /></svg>
-          首页
-        </button>
-        <button type="button" data-tab="bills">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.6-3 1.6-3-1.6L7 20V4Z" /></svg>
-          账单
-        </button>
-        <button type="button" class="add-tab" data-open-add aria-label="记账">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          总览
         </button>
         <button type="button" data-tab="reports">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7" /></svg>
           资产
+        </button>
+        <button type="button" data-tab="goals">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="3" /><path d="m16 8 3-3M19 5v4M19 5h-4" /></svg>
+          目标
+        </button>
+        <button type="button" data-tab="bills">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.6-3 1.6-3-1.6L7 20V4Z" /></svg>
+          流水
         </button>
         <button type="button" data-tab="profile">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 9a7 7 0 0 0-14 0" /></svg>
           我的
         </button>
       </nav>
+      <button class="floating-entry" type="button" data-open-add aria-label="补流水">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span>补流水</span>
+      </button>
 
       <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
-      <section class="add-sheet" id="addSheet" aria-label="快速记账" aria-modal="true" hidden>
+      <section class="add-sheet" id="addSheet" aria-label="快速补流水" aria-modal="true" hidden>
         <div class="sheet-handle"></div>
         <div class="sheet-title">
           <div>
-            <p class="eyebrow">Quick Entry</p>
-            <h2>记一笔</h2>
+            <p class="eyebrow">Cashflow Entry</p>
+            <h2>补流水</h2>
           </div>
           <button type="button" class="icon-button" id="closeSheet" aria-label="关闭">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -379,7 +430,7 @@
 
         <div class="entry-grid">
           <label>
-            账本
+            资产池
             <select id="bookSelect"></select>
           </label>
           <label>
@@ -408,7 +459,7 @@
           <input id="receiptInput" type="file" accept="image/*" />
           <span>点击选择小票或截图，云端 OCR 预留</span>
         </label>
-        <button class="save-entry" id="saveEntry" type="button">保存账单</button>
+        <button class="save-entry" id="saveEntry" type="button">保存流水</button>
       </section>
 
       <section class="manager-panel" id="managerPanel" aria-label="功能管理" aria-modal="true" hidden>
@@ -426,9 +477,9 @@
 
       <section class="auth-panel" id="authPanel" aria-label="账号登录" aria-modal="true" hidden>
         <div class="auth-card">
-          <img class="auth-logo" src="./public/logo.png" alt="一起记" />
-          <p class="eyebrow">Couple Ledger Account</p>
-          <h2 id="authTitle">登录一起记</h2>
+          <img class="auth-logo" src="./public/logo.png" alt="一起攒" />
+          <p class="eyebrow">Couple Wealth Account</p>
+          <h2 id="authTitle">登录一起攒</h2>
           <p id="authCopy">账号系统先临时 mock，点一下即可进入完整产品体验。</p>
           <button class="apple-login-button" type="button" id="appleLoginButton">
             <span></span>

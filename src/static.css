@@ -448,6 +448,13 @@ body.is-private .recurring-row > strong {
   margin-bottom: 12px;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .section-title h3 {
   font-size: 18px;
 }
@@ -1197,21 +1204,46 @@ body.is-private .recurring-row > strong {
   stroke-width: 2.4;
 }
 
-/* Couple Ledger Figma system v4: Foundations -> Components -> Patterns */
+.tab-bar {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.tab-bar button svg {
+  color: rgba(217, 251, 234, 0.82);
+  border-color: rgba(110, 231, 183, 0.16);
+  filter:
+    drop-shadow(0 0 4px rgba(110, 231, 183, 0.42))
+    drop-shadow(0 0 10px rgba(110, 231, 183, 0.16));
+}
+
+.tab-bar button.is-active {
+  color: #d9fbea;
+}
+
+.tab-bar button.is-active svg {
+  color: #d9fbea;
+  border-color: rgba(110, 231, 183, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(247, 251, 250, 0.16),
+    0 0 0 1px rgba(110, 231, 183, 0.1),
+    0 0 24px rgba(110, 231, 183, 0.18);
+}
+
+/* Couple Wealth Figma system v5: Foundations -> Components -> Patterns */
 :root {
-  --color-bg-primary: #0A0F12;
-  --color-bg-secondary: #0F151B;
-  --color-card: #121820;
+  --color-bg-primary: #07110F;
+  --color-bg-secondary: #0D1716;
+  --color-card: #101A18;
   --color-card-soft: rgba(18, 24, 32, 0.72);
   --color-card-strong: rgba(18, 24, 32, 0.92);
   --color-text-primary: #F7FBFA;
   --color-text-secondary: rgba(247, 251, 250, 0.62);
   --color-text-tertiary: rgba(247, 251, 250, 0.42);
-  --color-brand-gold: #E8C08A;
-  --color-brand-gold-soft: #FFE0B0;
-  --color-income: #22C55E;
-  --color-expense: #FF8A3D;
-  --color-line: rgba(232, 192, 138, 0.14);
+  --color-brand-gold: #6EE7B7;
+  --color-brand-gold-soft: #F6D889;
+  --color-income: #34D399;
+  --color-expense: #F59E0B;
+  --color-line: rgba(110, 231, 183, 0.14);
   --spacing-8: 8px;
   --spacing-12: 12px;
   --spacing-16: 16px;
@@ -1222,7 +1254,7 @@ body.is-private .recurring-row > strong {
   --radius-20: 20px;
   --radius-24: 24px;
   --glass-blur: blur(24px) saturate(128%);
-  --glow-gold: 0 0 28px rgba(232, 192, 138, 0.18);
+  --glow-gold: 0 0 28px rgba(110, 231, 183, 0.18);
   --shadow-glass: 0 22px 60px rgba(0, 0, 0, 0.36);
   --ink: var(--color-text-primary);
   --muted: var(--color-text-secondary);
@@ -1248,9 +1280,10 @@ body {
 body {
   color: var(--color-text-primary);
   background:
-    radial-gradient(circle at 50% -10%, rgba(232, 192, 138, 0.12), transparent 28rem),
-    radial-gradient(circle at 12% 14%, rgba(96, 165, 250, 0.08), transparent 22rem),
-    linear-gradient(180deg, #05080A 0%, var(--color-bg-primary) 44%, #070B0E 100%);
+    radial-gradient(circle at 50% -10%, rgba(110, 231, 183, 0.13), transparent 28rem),
+    radial-gradient(circle at 12% 14%, rgba(246, 216, 137, 0.1), transparent 22rem),
+    radial-gradient(circle at 88% 18%, rgba(96, 165, 250, 0.08), transparent 18rem),
+    linear-gradient(180deg, #040807 0%, var(--color-bg-primary) 44%, #09100F 100%);
 }
 
 body::before {
@@ -1387,9 +1420,10 @@ body::before {
   min-height: 306px;
   padding: 22px 18px 18px;
   background:
-    linear-gradient(180deg, rgba(10, 15, 18, 0.12), rgba(10, 15, 18, 0.88) 72%),
-    radial-gradient(circle at 50% 44%, rgba(232, 192, 138, 0.2), transparent 22rem),
-    linear-gradient(145deg, rgba(18, 24, 32, 0.92), rgba(10, 15, 18, 0.96));
+    linear-gradient(180deg, rgba(8, 18, 15, 0.08), rgba(5, 10, 9, 0.9) 72%),
+    radial-gradient(circle at 48% 42%, rgba(110, 231, 183, 0.2), transparent 22rem),
+    radial-gradient(circle at 78% 18%, rgba(246, 216, 137, 0.14), transparent 15rem),
+    linear-gradient(145deg, rgba(14, 28, 25, 0.94), rgba(6, 13, 12, 0.98));
 }
 
 .hero-card::before {
@@ -1399,8 +1433,8 @@ body::before {
   height: 112px;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent 0 42%, rgba(232, 192, 138, 0.34) 43%, rgba(232, 192, 138, 0.05) 45%, transparent 48%),
-    radial-gradient(ellipse at 50% 100%, rgba(232, 192, 138, 0.26), transparent 52%),
+    linear-gradient(180deg, transparent 0 42%, rgba(110, 231, 183, 0.28) 43%, rgba(110, 231, 183, 0.04) 45%, transparent 48%),
+    radial-gradient(ellipse at 50% 100%, rgba(246, 216, 137, 0.18), transparent 52%),
     linear-gradient(160deg, transparent 0 38%, rgba(247, 251, 250, 0.08) 39% 40%, transparent 41%),
     linear-gradient(200deg, transparent 0 35%, rgba(247, 251, 250, 0.08) 36% 37%, transparent 38%);
   opacity: 0.88;
@@ -1429,7 +1463,9 @@ body::before {
   font-size: clamp(36px, 11vw, 44px);
   line-height: 0.98;
   color: var(--color-brand-gold-soft);
-  text-shadow: 0 0 30px rgba(232, 192, 138, 0.24);
+  text-shadow:
+    0 0 24px rgba(110, 231, 183, 0.18),
+    0 0 34px rgba(246, 216, 137, 0.12);
 }
 
 .health-pill,
@@ -1474,7 +1510,7 @@ body::before {
 .mini-trend span,
 .progress-fill {
   background: linear-gradient(90deg, var(--color-income), var(--color-brand-gold));
-  box-shadow: 0 0 18px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.22);
 }
 
 .insight-card {
@@ -2253,7 +2289,7 @@ body::before {
 
 .sheet-backdrop {
   position: fixed;
-  z-index: 80;
+  z-index: 50;
   inset: 0;
   background: rgba(16, 24, 39, 0.34);
   backdrop-filter: blur(9px);
@@ -2572,7 +2608,7 @@ select:focus-visible {
   }
 }
 
-/* Couple Ledger v4 dark-gold visual system */
+/* Couple Wealth v5 assets-first visual system */
 :root {
   --ink: #f7fbfa;
   --muted: #95a1a0;
@@ -2596,8 +2632,9 @@ select:focus-visible {
 
 body {
   background:
-    linear-gradient(180deg, rgba(255, 195, 115, 0.08), transparent 24rem),
-    linear-gradient(145deg, #0B1118 0%, #121A24 48%, #1C2633 100%);
+    radial-gradient(circle at 50% -8%, rgba(110, 231, 183, 0.11), transparent 24rem),
+    radial-gradient(circle at 18% 20%, rgba(246, 216, 137, 0.09), transparent 18rem),
+    linear-gradient(145deg, #06100E 0%, #0E1917 48%, #17231F 100%);
   color: var(--ink);
 }
 
@@ -2607,8 +2644,8 @@ body::before {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, transparent 0 49%, rgba(235, 192, 138, 0.06) 50%, transparent 51%),
-    linear-gradient(180deg, transparent 0 64%, rgba(235, 192, 138, 0.07) 64.2%, transparent 66%);
+    linear-gradient(90deg, transparent 0 49%, rgba(110, 231, 183, 0.055) 50%, transparent 51%),
+    linear-gradient(180deg, transparent 0 64%, rgba(246, 216, 137, 0.06) 64.2%, transparent 66%);
   opacity: 0.7;
   pointer-events: none;
 }
@@ -2620,7 +2657,7 @@ body::before {
 
 .app-header {
   color: var(--ink);
-  background: linear-gradient(180deg, rgba(11, 17, 24, 0.96), rgba(11, 17, 24, 0.64));
+  background: linear-gradient(180deg, rgba(6, 16, 14, 0.96), rgba(6, 16, 14, 0.64));
 }
 
 .brand-lockup {
@@ -2645,13 +2682,13 @@ body::before {
 }
 
 .app-header h1 {
-  color: #FFE0B0;
+  color: #D9FBEA;
   font-size: 28px;
   font-weight: 900;
 }
 
 .eyebrow {
-  color: rgba(255, 224, 176, 0.72);
+  color: rgba(217, 251, 234, 0.72);
   font-size: 10px;
   font-weight: 850;
 }
@@ -2711,9 +2748,10 @@ body::before {
 .networth-card {
   padding: 22px;
   background:
-    linear-gradient(180deg, rgba(255, 204, 145, 0.08), transparent 48%),
-    linear-gradient(145deg, rgba(18, 26, 36, 0.98), rgba(11, 17, 24, 0.98));
-  border: 1px solid rgba(235, 192, 138, 0.2);
+    linear-gradient(180deg, rgba(110, 231, 183, 0.07), transparent 48%),
+    radial-gradient(circle at 78% 18%, rgba(246, 216, 137, 0.08), transparent 16rem),
+    linear-gradient(145deg, rgba(14, 28, 25, 0.98), rgba(6, 16, 14, 0.98));
+  border: 1px solid rgba(110, 231, 183, 0.2);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 26px 70px rgba(0, 0, 0, 0.48);
@@ -2725,10 +2763,10 @@ body::before {
   inset: auto 0 86px;
   height: 86px;
   background:
-    linear-gradient(180deg, transparent, rgba(235, 192, 138, 0.1)),
-    linear-gradient(155deg, transparent 0 38%, rgba(122, 137, 121, 0.42) 39% 46%, transparent 47%),
+    linear-gradient(180deg, transparent, rgba(110, 231, 183, 0.1)),
+    linear-gradient(155deg, transparent 0 38%, rgba(75, 121, 94, 0.42) 39% 46%, transparent 47%),
     linear-gradient(25deg, transparent 0 48%, rgba(34, 47, 52, 0.72) 49% 62%, transparent 63%);
-  border-bottom: 1px solid rgba(235, 192, 138, 0.17);
+  border-bottom: 1px solid rgba(110, 231, 183, 0.17);
   pointer-events: none;
 }
 
@@ -2736,8 +2774,8 @@ body::before {
 .networth-card::after {
   inset: auto 18% 90px 18%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(235, 192, 138, 0.88), transparent);
-  box-shadow: 0 0 34px 12px rgba(235, 192, 138, 0.18);
+  background: linear-gradient(90deg, transparent, rgba(110, 231, 183, 0.7), rgba(246, 216, 137, 0.58), transparent);
+  box-shadow: 0 0 34px 12px rgba(110, 231, 183, 0.14);
 }
 
 .hero-top p,
@@ -2749,8 +2787,10 @@ body::before {
 
 .hero-card h2,
 .networth-card strong {
-  color: #FFE0B0;
-  text-shadow: 0 0 22px rgba(235, 192, 138, 0.18);
+  color: #D9FBEA;
+  text-shadow:
+    0 0 22px rgba(110, 231, 183, 0.2),
+    0 0 28px rgba(246, 216, 137, 0.1);
 }
 
 .health-pill,
@@ -2963,9 +3003,9 @@ body::before {
 
 .tab-bar .add-tab,
 .save-entry {
-  background: linear-gradient(145deg, #FFE0B0, #FFB45C);
-  color: #0B1118;
-  box-shadow: 0 14px 34px rgba(235, 192, 138, 0.24);
+  background: linear-gradient(145deg, #D9FBEA, #6EE7B7 58%, #F6D889);
+  color: #06100E;
+  box-shadow: 0 14px 34px rgba(110, 231, 183, 0.22);
 }
 
 .sheet-backdrop {
@@ -3046,6 +3086,196 @@ body::before {
   filter:
     drop-shadow(0 0 4px rgba(255, 180, 92, 0.7))
     drop-shadow(0 0 12px rgba(255, 180, 92, 0.32));
+}
+
+.wealth-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+
+.wealth-actions button {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(110, 231, 183, 0.08), transparent),
+    rgba(18, 26, 36, 0.78);
+  border: 1px solid rgba(110, 231, 183, 0.13);
+  color: #f7fbfa;
+}
+
+.wealth-actions span {
+  color: rgba(217, 251, 234, 0.58);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.wealth-actions strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.goal-hero {
+  min-height: 146px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 14px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(246, 216, 137, 0.12), transparent 16rem),
+    linear-gradient(145deg, rgba(13, 31, 26, 0.96), rgba(6, 16, 14, 0.98));
+}
+
+.goal-hero span,
+.goal-hero em {
+  display: block;
+  color: rgba(217, 251, 234, 0.62);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.goal-hero strong {
+  display: block;
+  margin: 8px 0;
+  color: #d9fbea;
+  font-size: 46px;
+  line-height: 0.94;
+  text-shadow: 0 0 26px rgba(110, 231, 183, 0.22);
+}
+
+.goal-grid,
+.allocation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.goal-card {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(18, 26, 36, 0.78);
+  border: 1px solid rgba(110, 231, 183, 0.12);
+  color: #f7fbfa;
+  text-align: left;
+}
+
+.goal-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 30% 16%, rgba(247, 251, 250, 0.2), transparent 32%),
+    linear-gradient(145deg, rgba(18, 38, 32, 0.96), rgba(6, 16, 14, 0.96));
+  border: 1px solid rgba(110, 231, 183, 0.18);
+}
+
+.goal-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.goal-main strong {
+  color: #f7fbfa;
+  font-size: 14px;
+}
+
+.goal-main em,
+.allocation-row em {
+  color: rgba(247, 251, 250, 0.56);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.goal-card b {
+  color: #d9fbea;
+  font-size: 15px;
+}
+
+.goal-progress {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(247, 251, 250, 0.08);
+}
+
+.goal-progress i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34d399, #f6d889);
+  box-shadow: 0 0 18px rgba(110, 231, 183, 0.2);
+}
+
+.allocation-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(10, 15, 18, 0.34);
+  border: 1px solid rgba(110, 231, 183, 0.1);
+}
+
+.allocation-row span {
+  color: #f7fbfa;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.allocation-row strong {
+  color: #d9fbea;
+}
+
+.allocation-row em {
+  grid-column: 1 / -1;
+}
+
+.floating-entry {
+  position: fixed;
+  z-index: 41;
+  right: max(18px, calc((100vw - 470px) / 2 + 18px));
+  bottom: calc(100px + env(safe-area-inset-bottom));
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0 14px 0 12px;
+  background: linear-gradient(145deg, #d9fbea, #6ee7b7 58%, #f6d889);
+  color: #06100e;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(110, 231, 183, 0.22);
+}
+
+.floating-entry svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.4;
+}
+
+.tab-bar {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .template-chip span,
